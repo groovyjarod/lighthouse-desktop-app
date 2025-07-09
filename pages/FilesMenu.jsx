@@ -10,6 +10,7 @@ const FilesMenu = () => {
   const [content, setContent] = useState('')
   const [status, setStatus] = useState(null)
   const [files, setFiles] = useState([])
+  const [newFilename, setNewFilename] = useState('')
 
   const handleReplaceFile = async () => {
     const result = await window.electronAPI.getCurrentFile()
@@ -23,6 +24,8 @@ const FilesMenu = () => {
     const replaceResult = await window.electronAPI.replaceAuditFile(targetFile)
 
     if (replaceResult.success) {
+      console.log(replaceResult.filename)
+      setNewFilename(replaceResult.filename)
       setStatus('Success!')
     } else {
       setStatus(`Error replacing file: ${replaceResult.error}`)
@@ -33,6 +36,11 @@ const FilesMenu = () => {
     window.electronAPI.getEditableFiles().then(setFiles).catch(console.error)
   }, [])
 
+  useEffect(() => {
+    console.log(files)
+    setNewFilename(files.name)
+  }, [files])
+
   return (
     <VStack {...DefaultVstackSettings}>
         <MenuHeader title="View and Change Files" subTitle="Settings" />
@@ -40,10 +48,6 @@ const FilesMenu = () => {
         <HStack {...DefaultHstackSettings}>
           {files.map((file, index) => (
             <VStack className="settings-item"  key={index} gap="0px" onClick={handleReplaceFile}>
-              {/* {console.log(files)}
-              {console.log(files.length)}
-              {console.log(files[0])}
-              {console.log(typeof(files[0]))} */}
               <img src={fileLogo} alt="file logo" className='logo' />
               <h4>Change Paths File</h4>
               <div>
@@ -52,8 +56,8 @@ const FilesMenu = () => {
               </div>
             </VStack>
           ))}
-          {status && <p className='subText'>{status}</p>}
         </HStack>
+          {status && <p className='subText'>{status}</p>}
     </VStack>
   )
 }

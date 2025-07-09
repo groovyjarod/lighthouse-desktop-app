@@ -8,7 +8,7 @@ import LinkButton from '../reusables/LinkButton'
 const AuditCompare = () => {
   return (
     <VStack {...DefaultVstackSettings}>
-        <MenuHeader title="View Lists" subTitle="Created by Jarod Day" />
+        <MenuHeader title="Compare Audits" />
     </VStack>
   )
 }

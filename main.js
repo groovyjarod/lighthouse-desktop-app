@@ -67,7 +67,7 @@ ipcMain.handle('get-current-filename', async () => {
         return { success: false, error: error.message }
     }
 })
-ipcMain.handle('replace-file', async (destination) => {
+ipcMain.handle('replace-file', async (event, destination) => {
     const result = await dialog.showOpenDialog({
         title: 'Select a .txt file',
         defaultPath: app.getPath('desktop'),
@@ -84,7 +84,7 @@ ipcMain.handle('replace-file', async (destination) => {
 
     try {
         fs.copyFileSync(sourcePath, destinationPath)
-        return { success: true }
+        return { success: true, filename: path.basename(destinationPath) }
     } catch (error) {
         console.error('Failed to  opy file:', error)
         return { success: false, error: error.message }
