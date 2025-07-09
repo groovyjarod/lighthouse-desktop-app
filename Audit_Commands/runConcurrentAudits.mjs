@@ -1,7 +1,7 @@
 import fs from "fs";
 import { spawn } from "child_process";
 import pLimit from "p-limit";
-import estimateConcurrency from "./Audit_Logic/estimateConcurrency.mjs";
+import estimateConcurrency from "../Audit_Logic/estimateConcurrency.mjs";
 import readline from "readline/promises";
 import { stdin as input, stdout as output } from "node:process";
 const rl = readline.createInterface({ input, output });
