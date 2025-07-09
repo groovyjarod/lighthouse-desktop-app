@@ -1,4 +1,4 @@
-import createReport from "./Audit_Logic/createFinalizedReport.mjs";
+import createReport from "../Audit_Logic/createFinalizedReport.mjs";
 import fs from "fs";
 
 const url = "https://www.familysearch.org/";
