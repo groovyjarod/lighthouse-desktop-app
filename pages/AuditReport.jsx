@@ -30,7 +30,6 @@ const AuditReport = () => {
   return (
     <VStack {...DefaultVstackSettings}>
         <MenuHeader title="Report For All Audits" />
-
     </VStack>
   )
 }
