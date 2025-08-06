@@ -138,7 +138,7 @@ const AuditOne = () => {
 
   const handleCancelAudit = async () => {
     setIsCancelled(true);
-    setRunningStatus('cancelled')
+    setRunningStatus("cancelled")
     await window.electronAPI.cancelAudit().catch(console.error);
   };
 
@@ -166,7 +166,7 @@ const AuditOne = () => {
     } catch (err) {
       console.error("handleAllSizesAudit failed:", err);
       if (isCancelled) {
-        setRunningStatus('cancelled');
+        setRunningStatus("cancelled");
         setTitleHeader('Audit Cancelled');
         setErrorMessage('Audit was cancelled by the user.');
       } else {
@@ -214,7 +214,7 @@ const AuditOne = () => {
     } catch (err) {
       console.error("handleAudit in AuditOne.jsx failed:", err);
       if (err.message === "Audit cancelled by user") {
-        setRunningStatus('cancelled');
+        setRunningStatus("cancelled");
         setTitleHeader('Audit Cancelled');
         setErrorMessage('Audit was cancelled by the user.');
       } else {
@@ -226,6 +226,7 @@ const AuditOne = () => {
   };
 
   const handleRunAgain = () => {
+    setTitleHeader("Audit One Webpage")
     setRunningStatus("ready");
     setFullUrl("");
     setErrorMessage("");
@@ -319,7 +320,7 @@ const AuditOne = () => {
 
   return (
     <VStack {...CenteredVstackCss}>
-      <MenuHeader title={titleHeader} />
+      <MenuHeader title={titleHeader} handleBackButton={handleCancelAudit} />
       {runningStatus === "ready" && (
         <ReadyScreen
           fullUrl={fullUrl}

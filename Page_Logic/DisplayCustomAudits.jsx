@@ -12,16 +12,24 @@ const DisplayCustomAudits = () => {
       .then(async (files) => {
         const withMetadata = await Promise.all(
           files.map(async (file) => {
-            const metadata = await window.electronAPI.getAuditMetadata(
-              "custom-audit-results",
-              file.name
-            );
-            return { ...file, metadata };
+            try {
+              const metadata = await window.electronAPI.getAuditMetadata(
+                "custom-audit-results",
+                file.name
+              );
+              return { ...file, metadata };
+            } catch (err) {
+              console.warn(`Failed to get metadata for ${file.name}:`, err)
+              return { ...file, metadata: { error: err.message }}
+            }
           })
         );
         setFiles(withMetadata);
       })
-      .catch(console.error);
+      .catch((err) => {
+        console.error('Failed to fetch custom audits:', err)
+        setFiles([])
+      });
   }, []);
   return (
     <VStack {...CenteredVstackCss}>

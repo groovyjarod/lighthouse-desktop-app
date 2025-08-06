@@ -29,7 +29,7 @@
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
     "@vitejs/plugin-react": "^4.5.2",
-    "electron": "^37.1.0",
+    "electron": "^37.2.5",
     "electron-builder": "^26.0.12",
     "eslint": "^9.29.0",
     "eslint-plugin-react-hooks": "^5.2.0",
@@ -39,5 +39,45 @@
     "typescript": "~5.8.3",
     "typescript-eslint": "^8.34.1",
     "vite": "^7.0.0"
+  },
+  "build": {
+    "appId": "com.yourcompany.auditapp",
+    "productName": "Audit App",
+    "files": [
+      "build/**/*",
+      "electron.js",
+      "node_modules/**/*",
+      "reusables/**/*",
+      "settings/**/*",
+      "audits/**/*"
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "mac": {
+      "target": ["dmg", "zip"],
+      "category": "public.app-category.developer-tools",
+      "icon": "build/icon.icns"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64", "ia32"]
+        }
+      ],
+      "icon": "build/icon.ico"
+    },
+    "extraResources": [
+      {
+        "from": "settings/",
+        "to": "settings/"
+      },
+      {
+        "from": "audits/",
+        "to": "audits/"
+      }
+    ]
   }
 }
+
