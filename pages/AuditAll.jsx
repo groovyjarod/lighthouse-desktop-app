@@ -129,8 +129,6 @@ const AuditAll = () => {
     isCancelledRef.current = isCancelled
   }, [isCancelled])
 
-
-
   const addItem = (newItem) => setActivePaths((prev) => prev.includes(newItem) ? prev : [...prev, newItem]);
   const removeItem = (itemToRemove) => setActivePaths((prev) => prev.filter((item) => item !== itemToRemove));
 
@@ -140,16 +138,18 @@ const AuditAll = () => {
       try {
         const result = await fn();
         if (isCancelledRef.current) throw new Error("Audit cancelled by user.");
+        setRunningStatus("running")
         return result;
       } catch (err) {
         if (isCancelledRef.current) throw new Error("Audit cancelled by user.");
-        setRunningStatus('warning')
+        setRunningStatus("warning")
         console.warn(`Retry ${i + 1} failed. Trying again...`, err);
         if (i < retries - 1) {
           if (!isCancelledRef.current) {
             setRunningStatus("warning");
           } else {
             console.log('Retry skipped due to cancellation.');
+            setRunningStatus("cancelled")
             throw new Error("Audit cancelled by user.");
           }
         } else {
@@ -174,7 +174,7 @@ const AuditAll = () => {
 
   const commenceEachAllTypeAudit = async () => {
     const numberOfConcurrentAudits = pLimit(1)
-    setRunningStatus('running')
+    setRunningStatus("running")
     setIsCancelled(false)
     const tasks = wikiPaths.map((wikiPath) => {
       const fullUrl = `${initialUrl}${wikiPath}`
@@ -213,7 +213,7 @@ const AuditAll = () => {
     })
 
     await Promise.all(tasks)
-    if (!isCancelledRef.current) setRunningStatus('finished')
+    if (!isCancelledRef.current) setRunningStatus("finished")
   }
 
   const commenceAllAudits = async () => {
@@ -232,6 +232,7 @@ const AuditAll = () => {
             throw new Error("Audit Cancelled by user.")
           }
           try {
+            setIsCancelled(false)
             addItem(fullUrl);
             const result = await window.electronAPI.getSpawn(
               fullUrl,
@@ -325,7 +326,7 @@ const AuditAll = () => {
     <VStack {...BodyVstackCss}>
       <h3>Audits cancelled.</h3>
       <h4>{errorMessage}</h4>
-      <button className="btn btn-main" onClick={() => setRunningStatus('ready')}>Run Again</button>
+      <button className="btn btn-main" onClick={() => setRunningStatus("ready")}>Run Again</button>
     </VStack>
   )
 
@@ -340,7 +341,7 @@ const AuditAll = () => {
 
   return (
     <VStack {...CenteredVstackCss}>
-      <MenuHeader title="Audit All Pages" />
+      <MenuHeader title="Audit All Pages" handleBackButton={handleCancelAudit} />
       {runningStatus === "ready" && (
         <ReadyScreen
           inputNumber={inputNumber}

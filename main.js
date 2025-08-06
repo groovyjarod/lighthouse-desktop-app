@@ -26,9 +26,9 @@ const createWindow = () => {
   win.loadURL("http://localhost:5173");
 };
 
-const loadFolderData = (folderName) => {
+const loadFolderData = async (folderName) => {
   const folderPath = path.join(__dirname, folderName);
-  const entries = fs.readdirSync(folderPath);
+  const entries = await fsPromise.readdir(folderPath);
   return entries.map((name) => {
     const fullPath = path.join(folderPath, name);
     const stats = fs.statSync(fullPath);
@@ -46,61 +46,83 @@ ipcMain.handle("get-wiki-paths", async () => {
   return result;
 });
 
-ipcMain.handle("get-file", async (event, filePath) => fs.readFileSync(filePath, 'utf8'))
+ipcMain.handle("get-file", async (event, filePath) => fsPromise.readFile(filePath, 'utf8'))
 
-ipcMain.handle("read-audit-folder", async () =>
-  loadFolderData("audits/audit-results")
-);
-ipcMain.handle("read-old-audit-folder", async () =>
-  loadFolderData("audits/old-audit-results")
-);
-ipcMain.handle("read-comparison-folder", async () =>
-  loadFolderData("audits/audit-comparisons")
-);
-ipcMain.handle("read-custom-audits", async () =>
-  loadFolderData("audits/custom-audit-results")
-);
-ipcMain.handle("read-options-folder", async () => loadFolderData("settings"));
+ipcMain.handle("read-audit-folder", async () => {
+  return await loadFolderData("audits/audit-results")
+});
+
+ipcMain.handle("read-old-audit-folder", async () => {
+  return await loadFolderData("audits/old-audit-results")
+});
+
+ipcMain.handle("read-comparison-folder", async () => {
+  return await loadFolderData("audits/audit-comparisons")
+});
+
+ipcMain.handle("read-custom-audits", async () => {
+  return await loadFolderData("audits/custom-audit-results")
+});
+
+ipcMain.handle("read-options-folder", async () => {
+  return await loadFolderData("settings")
+});
 
 ipcMain.handle("get-audit-metadata", async (event, fileFolder, auditData) => {
-  const jsonAuditRaw = fs.readFileSync(
-    `./audits/${fileFolder}/${auditData}`,
-    "utf8"
-  );
-  const jsonAudit = JSON.parse(jsonAuditRaw);
-  let itemCount = 0;
-  let subItemCount = 0;
-  let accessibilityScore;
-
-  if (jsonAudit.hasOwnProperty('stats1920pxWidth')) {
-    return {
-      itemCount:"All",
-      subItemCount: "Sizes",
-      score: "Audit",
-      length: jsonAuditRaw.split("\n").length
+  try {
+    const filePath = path.join(__dirname, 'audits', fileFolder, auditData)
+    let jsonAuditRaw
+    try {
+      jsonAuditRaw = await fsPromise.readFile(filePath, 'utf8')
+    } catch (err) {
+      console.error(`Failed to read file ${filePath}:`, err)
+      throw new Error(`Unable to read audit file: ${err.message}`)
     }
-  }
-  for (const [key, value] of Object.entries(jsonAudit)) {
-    if (typeof value === "object") {
-      for (let itemData of value["items"]) {
-        itemCount++;
-        for (const [itemKey, itemValue] of Object.entries(itemData)) {
-          if (itemKey === "subItems") subItemCount++;
-        }
+
+    let jsonAudit
+    try {
+      jsonAudit = JSON.parse(jsonAuditRaw)
+    } catch (err) {
+      console.error(`Failed to parse JSON for ${filePath}:`, err)
+      throw new Error(`Invalid JSON in audit file: ${err.message}`)
+    }
+
+    let itemCount = 0
+    let subItemCount = 0
+    let accessibilityScore
+
+    if (jsonAudit.hasOwnProperty('stats1920pxWidth')) {
+      return {
+        itemCount: "All",
+        subItemCount: "Sizes",
+        score: "Audit",
+        length: jsonAuditRaw.split("\n").length
       }
-    } else if (key === "accessibilityScore") {
-      accessibilityScore = value;
     }
+
+    for (const [key, value] of Object.entries(jsonAudit)) {
+      if (typeof value === "object" && value?.items) {
+        for (let itemData of value["items"]) {
+          itemCount++
+          for (const [itemKey, itemValue] of Object.entries(itemData)) {
+            if (itemKey === "subItems") subItemCount++
+          }
+        }
+      } else if (key === "accessibilityScore") {
+        accessibilityScore = value
+      }
+    }
+
+    return {
+      itemCount: itemCount,
+      subItemCount: subItemCount,
+      score: accessibilityScore,
+      length: jsonAuditRaw.split("\n").length,
+    }
+  } catch (err) {
+    console.error('get-audit-metadata failed:', err)
+    throw err
   }
-
-  const result = {
-    itemCount: itemCount,
-    subItemCount: subItemCount,
-    score: accessibilityScore,
-    length: jsonAuditRaw.split("\n").length,
-  };
-
-  return result;
 });
 
 ipcMain.handle("save-file", async (event, filePath, fileContent) => {
@@ -150,6 +172,8 @@ ipcMain.handle("access-os-data", async () => {
 });
 
 ipcMain.handle("get-spawn", async (event, urlPath, outputPath, testing_method, user_agent, viewport, processId) => {
+    const TIMEOUT_ALL_TESTS = 40000
+    const TIMEOUT_SINGULAR_TEST = 30000
     let timeoutId
     const spawnPromise = new Promise((resolve, reject) => {
       const child = child_process.spawn(
@@ -201,9 +225,8 @@ ipcMain.handle("get-spawn", async (event, urlPath, outputPath, testing_method, u
       timeoutId = setTimeout(() => {
         console.warn(`Audit timeout for ${urlPath}`)
         activeProcesses.delete(processId)
-        child.kill('SIGTERM')
-        resolve(null)
-      }, 30000);
+        resolve("Audit incomplete.")
+      }, testing_method == 'all' ? TIMEOUT_ALL_TESTS : TIMEOUT_SINGULAR_TEST);
     })
 
     return Promise.race([spawnPromise, timeoutPromise])

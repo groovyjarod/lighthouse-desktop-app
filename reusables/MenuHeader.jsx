@@ -2,7 +2,7 @@ import React from "react";
 import { VStack, HStack, Text } from "@chakra-ui/react";
 import LinkButton from "./LinkButton";
 
-const MenuHeader = ({ title, subTitle, headerText }) => {
+const MenuHeader = ({ title, subTitle, headerText, handleBackButton }) => {
   return (
     <VStack width="100%">
         <HStack
@@ -15,6 +15,7 @@ const MenuHeader = ({ title, subTitle, headerText }) => {
             destination="../"
             buttonClass="btn"
             buttonText="< Go Back"
+            handleBackButton={handleBackButton}
         />
         <h1>{title}</h1>
         <h4>{subTitle}</h4>
