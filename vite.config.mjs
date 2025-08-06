@@ -6,4 +6,7 @@ export default defineConfig({
   define: {
     'process.env': {},
   },
+  build: {
+    outDir: 'build'
+  }
 })

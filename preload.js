@@ -1,5 +1,6 @@
-const { contextBridge, ipcRenderer, shell } = require('electron')
-const path = require('path')
+const { contextBridge, ipcRenderer } = require('electron')
+
+console.log('Preload script executing...')
 
 contextBridge.exposeInMainWorld('electronAPI', {
     accessOsData: () => ipcRenderer.invoke('access-os-data'),
@@ -17,12 +18,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getWikiPathsData: () => ipcRenderer.invoke('get-wiki-paths'),
     getOldAudits: () => ipcRenderer.invoke('read-old-audit-folder'),
     moveAuditFiles: () => ipcRenderer.invoke('move-audit-files'),
-    openResultsFile: (filename, folder) => {
-        const fullPath = path.join(__dirname, `./audits/${folder}`, filename)
-        shell.openPath(fullPath)
-        shell.showItemInFolder(fullPath)
-    },
+    openResultsFile: (filename, folder) => ipcRenderer.invoke('open-results-file', filename, folder),
     replaceFile: (newData, newPath, isWikiPaths=false) => ipcRenderer.invoke('replace-file', newData, newPath, isWikiPaths),
     saveFile: (filePath, fileContent) => ipcRenderer.invoke('save-file', filePath, fileContent),
     onLighthouseLog: (callback) => ipcRenderer.on('lighthouse-log', (event, message) => callback(message))
 })
+
+console.log('preload script loaded.')

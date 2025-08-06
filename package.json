@@ -1,21 +1,28 @@
 {
-  "name": "vite-project",
-  "private": true,
-  "version": "0.0.0",
-  "main": "./main.js",
+  "name": "lighthouse-automation-app",
+  "version": "1.0.0",
+  "description": "A react-based automation tool using Electron to emulate, React to render, and javascript to process logic.",
+  "main": "main.js",
+  "author": "SolutionStream",
+  "license": "MIT",
   "homepage": "./",
   "scripts": {
     "electron:start": "electron .",
     "dev": "concurrently \"vite\" \"npm run electron:start\"",
     "start": "vite",
-    "electron:serve": "concurrently -k \"cross-env BROWSER=none npm start\" \"npm run electron:start\""
+    "electron:serve": "concurrently -k \"cross-env BROWSER=none npm start\" \"npm run electron:start\"",
+    "build": "vite build",
+    "electron:pack": "npm run build && electron-builder --mac --win",
+    "electron:pack-mac": "npm run build && electron-builder --mac",
+    "electron:pack-win": "npm run build && electron-builder --win",
+    "postinstall": "npm install puppeteer"
   },
   "dependencies": {
     "@chakra-ui/react": "^2.10.4",
     "@electron/remote": "^2.1.2",
-    "child_process": "^1.0.2",
     "concurrently": "^9.2.0",
     "cross-env": "^7.0.3",
+    "glob": "^11.0.0",
     "p-limit": "^6.2.0",
     "puppeteer": "^24.10.1",
     "react": "^19.1.0",
@@ -29,8 +36,10 @@
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
     "@vitejs/plugin-react": "^4.5.2",
+    "child_process": "^1.0.2",
     "electron": "^37.2.5",
     "electron-builder": "^26.0.12",
+    "electron-is-dev": "^3.0.1",
     "eslint": "^9.29.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
@@ -41,33 +50,20 @@
     "vite": "^7.0.0"
   },
   "build": {
-    "appId": "com.yourcompany.auditapp",
-    "productName": "Audit App",
+    "appId": "com.SolutionStream.auditapp",
+    "productName": "Lighthouse Automation App",
     "files": [
+      "!**/.DS_Store",
+      "Audit_Logic/**/*",
       "build/**/*",
-      "electron.js",
+      "main.js",
       "node_modules/**/*",
       "reusables/**/*",
       "settings/**/*",
-      "audits/**/*"
+      "audits/**/*",
+      "runAndWriteAudit.mjs",
+      "preload.js"
     ],
-    "directories": {
-      "output": "dist"
-    },
-    "mac": {
-      "target": ["dmg", "zip"],
-      "category": "public.app-category.developer-tools",
-      "icon": "build/icon.icns"
-    },
-    "win": {
-      "target": [
-        {
-          "target": "nsis",
-          "arch": ["x64", "ia32"]
-        }
-      ],
-      "icon": "build/icon.ico"
-    },
     "extraResources": [
       {
         "from": "settings/",
@@ -76,8 +72,47 @@
       {
         "from": "audits/",
         "to": "audits/"
+      },
+      {
+        "from": "runAndWriteAudit.mjs",
+        "to": "runAndWriteAudit.mjs"
+      },
+      {
+        "from": "node_modules/puppeteer/.local-chromium/",
+        "to": "node_modules/puppeteer/.local-chromium/"
+      }
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "category": "public.app-category.developer-tools",
+      "icon": "build/icon.icns",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64",
+            "ia32"
+          ]
+        }
+      ],
+      "icon": "build/icon.ico"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "groovyjarod",
+        "repo": "lighthouse-automation-app"
       }
     ]
   }
 }
-

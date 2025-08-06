@@ -14,7 +14,6 @@ import getLastPathSegment from "../reusables/getLastPathSegment";
 const NumberInput = memo(({ inputNumber, setInputNumber, disabled }) => {
 
   inputNumber = !disabled ? inputNumber : 1
-  console.log(inputNumber)
 
   return (
     <Input
@@ -125,7 +124,6 @@ const AuditAll = () => {
   }, []);
 
   useEffect(() => {
-    console.log(`isCancelled updated: ${isCancelled}`)
     isCancelledRef.current = isCancelled
   }, [isCancelled])
 
