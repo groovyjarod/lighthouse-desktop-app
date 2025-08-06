@@ -5,7 +5,7 @@ const outputDir = 'audit-comparisons'
 const oldDir = 'old-audit-results'
 const newDir = 'audit-results'
 
-const sharedFiles = fs.readdirSync(oldDir).filter(file => file.endsWith('.json') && fs.existsSync(path.join(newDir, file)))
+const sharedFiles = fs.readdirSync(`../audits/${oldDir}`).filter(file => file.endsWith('.json') && fs.existsSync(path.join(`../audits/${newDir}`, file)))
 for (const fileName of sharedFiles) {
     const oldPath = path.join(oldDir, fileName)
     const newPath = path.join(newDir, fileName)

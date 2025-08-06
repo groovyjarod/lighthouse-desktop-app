@@ -1,25 +1,14 @@
-// IMPORTANT!!!!!!!! PLEASE READ BEFORE EXECUTING SCRIPT!!!!
-/*
-This script requires the insertion of a secret user-agent, which will be provided to anyone authorized to run
-automated lighthouse audits for FamilySearch. Please refer to secretUserAgent.mjs for further
-instructions.
-
-*/
-
-import secretUserAgent from "./secretUserAgent.mjs";
-
 import lighthouse from "lighthouse";
 import * as chromeLauncher from "chrome-launcher";
 
 const OUTPUT_FORMAT = "json"; // 'html'
 const TESTING_METHOD = "desktop"; // 'mobile'
 const isMobile = TESTING_METHOD === "mobile";
-const USER_AGENT = secretUserAgent()
 
-if (USER_AGENT === "replace this return value with the provided secret user agent") {
-  console.error("Please go to secretUserAgent.mjs and replace the return value with the secret user-agent key provided.")
-  process.exit(1)
-}
+// if (USER_AGENT === "replace this return value with the provided secret user agent") {
+//   console.error("Please go to secretUserAgent.mjs and replace the return value with the secret user-agent key provided.")
+//   process.exit(1)
+// }
 
 export default async function runLighthouse(url) {
   const viewport = isMobile ? { width: 500, height: 700 } : { width: 1400, height: 800 }

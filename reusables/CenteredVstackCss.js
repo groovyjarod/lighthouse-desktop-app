@@ -1,4 +1,4 @@
-const DefaultVstackSettings = {
+const CenteredVstackCss = {
     width: '100%',
     height: '100%',
     gap: '0px',
@@ -7,4 +7,4 @@ const DefaultVstackSettings = {
     className: 'main'
 }
 
-export default DefaultVstackSettings
+export default CenteredVstackCss

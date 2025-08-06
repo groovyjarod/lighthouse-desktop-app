@@ -3,7 +3,7 @@ import fs from "fs";
 
 const url = "https://www.familysearch.org/";
 const language = "en";
-const pathsRaw = fs.readFileSync("./wikiPaths.txt", "utf8");
+const pathsRaw = fs.readFileSync("../settings/wikiPaths.txt", "utf8");
 const paths = pathsRaw.split("\n");
 
 async function getReportData(url) {
@@ -17,7 +17,7 @@ async function commenceAllAudits(paths) {
     console.log(`Starting on ${fullUrl}...`);
     const jsonData = await getReportData(fullUrl);
     console.log("Writing to file...");
-    fs.writeFileSync(`./new-audit-results/${i}-${paths[i]}.json`, jsonData, "utf8");
+    fs.writeFileSync(`../audits/audit-results/${i}-${paths[i]}.json`, jsonData, "utf8");
     console.log("File completed.");
   }
 }
