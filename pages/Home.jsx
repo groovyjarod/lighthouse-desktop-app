@@ -1,13 +1,13 @@
 import React from "react";
 import { VStack, Button } from "@chakra-ui/react";
 import { Link } from "react-router-dom";
-import DefaultVstackSettings from "../reusables/defaultVstackSettings";
+import CenteredVstackCss from "../reusables/CenteredVstackCss";
 import LinkButton from "../reusables/LinkButton";
 
 const Home = () => {
   return (
     <>
-      <VStack {...DefaultVstackSettings}>
+      <VStack {...CenteredVstackCss}>
         <h1>Lighthouse Automation Tool</h1>
         <h3>Version 1.3.0</h3>
         <h2>Authored by Jarod Day</h2>

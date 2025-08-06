@@ -1,8 +1,8 @@
 import React from 'react'
 import { VStack, HStack, Menu } from '@chakra-ui/react'
-import DefaultHstackSettings from '../reusables/DefaultHstackSettings'
-import DefaultVstackSettings from '../reusables/defaultVstackSettings'
-import BodyVstackSettings from '../reusables/BodyVstackSettings'
+import CenteredHstackCss from '../reusables/CenteredHstackCss'
+import CenteredVstackCss from '../reusables/CenteredVstackCss'
+import BodyVstackCss from '../reusables/BodyVstackCss'
 import MenuHeader from '../reusables/MenuHeader'
 import LinkButton from '../reusables/LinkButton'
 
@@ -10,10 +10,10 @@ import DisplayAuditResults from '../Page_Logic/DisplayAuditResults'
 
 const ListAudits = () => {
   return (
-    <VStack {...DefaultVstackSettings} alignItems="start">
-        <MenuHeader title="Current Audits" subTitle="Created by Jarod Day" />
-        <VStack {...DefaultVstackSettings}>
-          <VStack {...BodyVstackSettings}>
+    <VStack {...CenteredVstackCss} alignItems="start">
+        <MenuHeader title="Current Audits" />
+        <VStack {...CenteredVstackCss}>
+          <VStack {...BodyVstackCss}>
             <DisplayAuditResults />
           </VStack>
         </VStack>

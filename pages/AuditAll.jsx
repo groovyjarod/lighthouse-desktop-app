@@ -1,34 +1,364 @@
-import React, { useEffect, useState } from 'react'
-import { VStack, HStack, Menu, Text } from '@chakra-ui/react'
-import DefaultHstackSettings from '../reusables/DefaultHstackSettings'
-import DefaultVstackSettings from '../reusables/defaultVstackSettings'
-import MenuHeader from '../reusables/MenuHeader'
-import LinkButton from '../reusables/LinkButton'
+import React, { useEffect, useState, useRef, memo } from "react";
+import { VStack, HStack, Text, Input } from "@chakra-ui/react";
+import CenteredHstackCss from "../reusables/CenteredHstackCss";
+import CenteredVstackCss from "../reusables/CenteredVstackCss";
+import BodyHstackCss from "../reusables/BodyHstackCss";
+import BodyVstackCss from "../reusables/BodyVstackCss";
+import AuditVstackCss from "../reusables/AuditVstackCss";
+import MenuHeader from "../reusables/MenuHeader";
+import LinkButton from "../reusables/LinkButton";
+import pLimit from "p-limit";
+import runAllTypesAudit from "../reusables/RunAllTypesAudit";
+import getLastPathSegment from "../reusables/getLastPathSegment";
 
-const AuditAll = () => {
-  const [file, setFile] = useState([])
-  const [filename, setFilename] = useState('')
-  useEffect(() => {
-    window.electronAPI.getEditableFiles().then(setFile).catch(console.error)
-  }, [])
+const NumberInput = memo(({ inputNumber, setInputNumber, disabled }) => {
 
-  useEffect(() => {
-    if (file.length > 0 && file[0].name) {
-      setFilename(file[0].name)
-    }
-  }, [file])
+  inputNumber = !disabled ? inputNumber : 1
+  console.log(inputNumber)
 
   return (
-    <VStack {...DefaultVstackSettings}>
-        <MenuHeader title="Audit All Pages" />
-        <h2>Pulling paths from: {filename} </h2>
-        <Text maxw="90%">Based on your computer's memory, the recommended limit for concurrent tests is 6.</Text>
-        <Text>How many tests would you like to run concurrently?</Text>
-        <label htmlFor="number-link">Number of Concurrent Audits</label>
-        <input type="text" name="number-link" />
-        <button className="btn btn-main">Start All Audits</button>
+    <Input
+      className="input"
+      type="text" // Use text to allow controlled validation
+      name="number-link"
+      value={inputNumber}
+      onChange={(e) => setInputNumber(e.target.value)}
+      disabled={disabled}
+    />
+  );
+});
+
+const ReadyScreen = memo(({ inputNumber, setInputNumber, recommendedAudits, testingMethod, setTestingMethod, commenceAllAudits, wikiPaths }) => {
+
+  return (
+    <VStack {...BodyVstackCss}>
+      <HStack width="100%" justifyContent="space-between">
+        <h2>Pulling paths from wikiPaths.txt</h2>
+        <LinkButton
+          destination="../../files-menu"
+          buttonText="Edit Wiki Paths"
+          buttonClass="btn btn-small"
+        />
+      </HStack>
+      <Text maxW="80%">
+        Based on your computer's available memory, the recommended limit for
+        concurrent tests is:
+      </Text>
+      <h1>{recommendedAudits}.</h1>
+      <Text>How many tests would you like to run concurrently?</Text>
+      <NumberInput inputNumber={testingMethod === 'all' ? 1 : inputNumber} setInputNumber={setInputNumber} disabled={testingMethod === 'all'} />
+      <h2>Choose Testing Method</h2>
+      <HStack {...CenteredHstackCss}>
+        <HStack {...BodyHstackCss}>
+          <input
+            type="radio"
+            name="testingMethod"
+            value="desktop"
+            checked={testingMethod === "desktop"}
+            onChange={(e) => setTestingMethod(e.target.value)}
+          />
+          <label htmlFor="desktop">Desktop</label>
+        </HStack>
+        <HStack {...BodyHstackCss}>
+          <input
+            type="radio"
+            name="testingMethod"
+            value="mobile"
+            checked={testingMethod === "mobile"}
+            onChange={(e) => setTestingMethod(e.target.value)}
+          />
+          <label htmlFor="mobile">Mobile</label>
+        </HStack>
+        <HStack {...BodyHstackCss}>
+          <input
+            type="radio"
+            name="testingMethod"
+            value="all"
+            checked={testingMethod === "all"}
+            onChange={(e) => {
+              setTestingMethod(e.target.value)
+              setInputNumber(1)
+            }}
+          />
+          <label htmlFor="mobile">All Sizes</label>
+        </HStack>
+      </HStack>
+      <button
+        className="btn btn-main"
+        onClick={commenceAllAudits}
+        disabled={
+          !wikiPaths.length ||
+          !inputNumber ||
+          parseInt(inputNumber) <= 0 ||
+          !Number.isInteger(parseFloat(inputNumber))
+        }
+      >
+        Start All Audits
+      </button>
+      <div className="page-spacer"></div>
+    </VStack>
+  );
+});
+
+const AuditAll = () => {
+  const [file, setFile] = useState([]);
+  const [recommendedAudits, setRecommendedAudits] = useState(0);
+  const [userAgent, setUserAgent] = useState("");
+  const [initialUrl, setInitialUrl] = useState("");
+  const [wikiPaths, setWikiPaths] = useState([]);
+  const [inputNumber, setInputNumber] = useState(0);
+  const [testingMethod, setTestingMethod] = useState("desktop");
+  const [runningStatus, setRunningStatus] = useState("ready");
+  const [activePaths, setActivePaths] = useState([]);
+  const [successfulAudits, setSuccessfulAudits] = useState([]);
+  const [failedAudits, setFailedAudits] = useState([]);
+  const [isCancelled, setIsCancelled] = useState(false)
+  const [errorMessage, setErrorMessage] = useState("")
+  const isCancelledRef = useRef(isCancelled)
+
+  useEffect(() => {
+    window.electronAPI.accessOsData().then(setRecommendedAudits).catch(console.error);
+    window.electronAPI.getWikiPathsData().then(setWikiPaths).catch(console.error);
+    window.electronAPI.getEditableFiles().then(setFile).catch(console.error);
+    window.electronAPI.getFile('./settings/secretUserAgent.txt').then(setUserAgent).catch(console.error);
+    window.electronAPI.getFile('./settings/initialUrl.txt').then(setInitialUrl).catch(console.error);
+  }, []);
+
+  useEffect(() => {
+    console.log(`isCancelled updated: ${isCancelled}`)
+    isCancelledRef.current = isCancelled
+  }, [isCancelled])
+
+
+
+  const addItem = (newItem) => setActivePaths((prev) => prev.includes(newItem) ? prev : [...prev, newItem]);
+  const removeItem = (itemToRemove) => setActivePaths((prev) => prev.filter((item) => item !== itemToRemove));
+
+  const retryAudit = async (fn, retries = 2) => {
+    for (let i = 0; i < retries; i++) {
+      if (isCancelledRef.current) throw new Error("Audit cancelled by user.");
+      try {
+        const result = await fn();
+        if (isCancelledRef.current) throw new Error("Audit cancelled by user.");
+        return result;
+      } catch (err) {
+        if (isCancelledRef.current) throw new Error("Audit cancelled by user.");
+        setRunningStatus('warning')
+        console.warn(`Retry ${i + 1} failed. Trying again...`, err);
+        if (i < retries - 1) {
+          if (!isCancelledRef.current) {
+            setRunningStatus("warning");
+          } else {
+            console.log('Retry skipped due to cancellation.');
+            throw new Error("Audit cancelled by user.");
+          }
+        } else {
+          console.log('Retries exhausted.');
+          throw err;
+        }
+      }
+    }
+  };
+
+  const handleCancelAudit = async () => {
+    setIsCancelled(true);
+    setRunningStatus("cancelled");
+    setErrorMessage("Audits were cancelled by the user.");
+    await window.electronAPI.cancelAudit().catch((err) => {
+      console.error('Failed to cancel audits:', err);
+    });
+    await window.electronAPI.clearAllSizedAuditsFolder().catch((err) => {
+      console.warn('Failed to clean up temporary files:', err);
+    });
+  };
+
+  const commenceEachAllTypeAudit = async () => {
+    const numberOfConcurrentAudits = pLimit(1)
+    setRunningStatus('running')
+    setIsCancelled(false)
+    const tasks = wikiPaths.map((wikiPath) => {
+      const fullUrl = `${initialUrl}${wikiPath}`
+      window.scrollTo(0, 0)
+
+      return numberOfConcurrentAudits(async () => {
+        if (isCancelledRef.current) {
+          console.log(`commenceEachAllTypeAudit: isCancelled check worked.`)
+          throw new Error("Audit cancelled by user.")
+        }
+        try {
+          addItem(fullUrl)
+          const result = await runAllTypesAudit(
+            fullUrl,
+            userAgent,
+            pLimit,
+            getLastPathSegment,
+            'audit-results',
+            isCancelledRef.current,
+            setRunningStatus,
+            retryAudit
+          )
+          console.log(result)
+          setSuccessfulAudits((prev) => [...prev, fullUrl])
+        } catch (err) {
+          if (err.message === "Audit cancelled by user.") {
+            console.log('Cancellation caught.')
+          } else {
+            console.error(`Concurrent all type audit failed: ${err}`)
+            setFailedAudits((prev) => [...prev, fullUrl])
+          }
+        } finally {
+          removeItem(fullUrl)
+        }
+      })
+    })
+
+    await Promise.all(tasks)
+    if (!isCancelledRef.current) setRunningStatus('finished')
+  }
+
+  const commenceAllAudits = async () => {
+    const numberOfConcurrentAudits = pLimit(parseInt(inputNumber) || 1);
+    setRunningStatus("running");
+    setIsCancelled(false)
+    const tasks = wikiPaths.map((wikiPath, index) => {
+      const fullUrl = `${initialUrl}${wikiPath}`;
+      const outputType = testingMethod === "desktop" ? "desk" : "mobile";
+      const outputPath = `./audits/audit-results/${index + 1}-${outputType}-${wikiPath}.json`;
+      const processId = `audit-${Date.now()}-${index}`
+      return numberOfConcurrentAudits(() =>
+        retryAudit(async () => {
+          if (isCancelledRef.current) {
+            console.log('In commenceAllAudits: isCancelled check worked.')
+            throw new Error("Audit Cancelled by user.")
+          }
+          try {
+            addItem(fullUrl);
+            const result = await window.electronAPI.getSpawn(
+              fullUrl,
+              outputPath,
+              testingMethod,
+              userAgent,
+              testingMethod === 'desktop' ? 1920 : 500,
+              processId
+            );
+            result === "Audit complete." ? setSuccessfulAudits((prev) => [...prev, fullUrl]) : setFailedAudits((prev) => [...prev, fullUrl]);
+          } catch (err) {
+            if (err.message === "Audit cancelled by user.") {
+              console.log('Cancellation caught in commenceAllAudits.')
+            } else {
+              console.error(`Audit for ${fullUrl} failed:`, err);
+              setFailedAudits((prev) => [...prev, fullUrl])
+            }
+            throw err;
+          } finally {
+            removeItem(fullUrl);
+          }
+        })
+      );
+    });
+
+    await Promise.all(tasks);
+    if (!isCancelledRef.current) {
+      console.log("AuditAll.jsx: All Audits complete!");
+      setRunningStatus("finished");
+    }
+  };
+
+  const RunningScreen = () => (
+    <VStack {...BodyVstackCss}>
+      {activePaths.map((path, index) => (
+        <VStack
+          key={index}
+          {...AuditVstackCss}
+          gap="0px"
+          className="scroll-hidden"
+        >
+          <h3 style={{ margin: "0px" }}>Now auditing:</h3>
+          <p style={{ margin: "0px" }}>{path}</p>
+        </VStack>
+      ))}
+      <button className="btn btn-main" onClick={handleCancelAudit}>Cancel Audits</button>
+    </VStack>
+  );
+
+  const FinishedScreen = () => (
+    <VStack {...BodyVstackCss}>
+      <h2>All audits finished.</h2>
+      <h3>{successfulAudits.length} audits successfully written, {failedAudits.length} audits failed:</h3>
+      {failedAudits.map((audit, index) => (
+        <VStack
+          key={index}
+          {...BodyVstackCss}
+          gap="0px"
+          className="scroll-hidden"
+        >
+          <p>{audit}</p>
+        </VStack>
+      ))}
+      <button className="btn btn-main" onClick={() => setRunningStatus("ready")}>
+        Run Again
+      </button>
+      <LinkButton
+        buttonClass="btn btn-main"
+        buttonText="Go To File"
+        destination="../../lists-menu/view-audits"
+      />
+      <div className="page-spacer"></div>
+    </VStack>
+  );
+
+  const WarningScreen = () => (
+    <VStack {...BodyVstackCss}>
+      <h2>Continuing audit...</h2>
+      <p>Attempting to reconnect to webpage after previous attempt failed.</p>
+      <p>Trying again...</p>
+      <button
+        className="btn btn-main"
+        onClick={handleCancelAudit}
+      >
+        Cancel Audit
+      </button>
     </VStack>
   )
-}
 
-export default AuditAll
+  const CancelledScreen = () => (
+    <VStack {...BodyVstackCss}>
+      <h3>Audits cancelled.</h3>
+      <h4>{errorMessage}</h4>
+      <button className="btn btn-main" onClick={() => setRunningStatus('ready')}>Run Again</button>
+    </VStack>
+  )
+
+  const ErrorScreen = () => (
+    <VStack {...BodyVstackCss}>
+      <p>Error</p>
+      <button className="btn btn-main" onClick={() => setRunningStatus("ready")}>
+        Reset
+      </button>
+    </VStack>
+  );
+
+  return (
+    <VStack {...CenteredVstackCss}>
+      <MenuHeader title="Audit All Pages" />
+      {runningStatus === "ready" && (
+        <ReadyScreen
+          inputNumber={inputNumber}
+          setInputNumber={setInputNumber}
+          recommendedAudits={recommendedAudits}
+          testingMethod={testingMethod}
+          setTestingMethod={setTestingMethod}
+          commenceAllAudits={testingMethod === 'all' ? commenceEachAllTypeAudit : commenceAllAudits}
+          wikiPaths={wikiPaths}
+        />
+      )}
+      {runningStatus === "running" && <RunningScreen />}
+      {runningStatus === "finished" && <FinishedScreen />}
+      {runningStatus === "warning" && <WarningScreen />}
+      {runningStatus === "cancelled" && <CancelledScreen />}
+      {runningStatus === "error" && <ErrorScreen />}
+    </VStack>
+  );
+};
+
+export default AuditAll;

@@ -1,18 +1,18 @@
 import React from 'react'
 import { VStack, HStack, Menu } from '@chakra-ui/react'
-import DefaultHstackSettings from '../reusables/DefaultHstackSettings'
-import DefaultVstackSettings from '../reusables/defaultVstackSettings'
+import CenteredHstackCss from '../reusables/CenteredHstackCss'
+import CenteredVstackCss from '../reusables/CenteredVstackCss'
 import MenuHeader from '../reusables/MenuHeader'
 import LinkButton from '../reusables/LinkButton'
-import BodyVstackSettings from '../reusables/BodyVstackSettings'
+import BodyVstackCss from '../reusables/BodyVstackCss'
 import DisplayAuditComparisons from '../Page_Logic/DisplayAuditComparisons'
 
 const ListComparisons = () => {
   return (
-    <VStack {...DefaultVstackSettings}>
-        <MenuHeader title="Audit Comparisons" subTitle="Created by Jarod Day" />
-        <VStack {...DefaultVstackSettings}>
-          <VStack {...BodyVstackSettings}>
+    <VStack {...CenteredVstackCss}>
+        <MenuHeader title="Audit Comparisons" />
+        <VStack {...CenteredVstackCss}>
+          <VStack {...BodyVstackCss}>
             <DisplayAuditComparisons />
           </VStack>
         </VStack>
