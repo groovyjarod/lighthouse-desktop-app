@@ -99,38 +99,37 @@ const AuditOne = () => {
   }, []);
 
   useEffect(() => {
-    console.log("isCancelled updated: ", isCancelled)
     isCancelledRef.current = isCancelled
   }, [isCancelled])
 
   const retryAudit = async (fn, retries = 2) => {
     for (let i = 0; i < retries; i++) {
       if (isCancelledRef.current) {
-        console.log('initial check for isCancelled worked.')
+        console.log('initial check for isCancelled worked.');
         throw new Error("Audit cancelled by user");
       }
       try {
         const result = await fn();
         if (isCancelledRef.current) {
-          console.log('Post-fn isCancelledRef check worked.')
-          throw new Error("Audit cancelled by user")
+          console.log('Post-fn isCancelledRef check worked.');
+          throw new Error("Audit cancelled by user");
         }
-        return result
+        return result;
       } catch (err) {
         if (isCancelledRef.current) {
-          console.log('Error isCancelledRef check worked.')
+          console.log('Error isCancelledRef check worked.');
           throw new Error("Audit cancelled by user");
         }
         console.warn(`Retry ${i + 1} failed. Trying again...`, err);
         if (i < retries - 1) {
-          if (!isCancelledRef.current) setRunningStatus("warning")
+          if (!isCancelledRef.current) setRunningStatus("warning");
           else {
-            console.log('Retry skipped due to cancellation.')
-            throw new Error ('Audit cancelled by user')
+            console.log('Retry skipped due to cancellation.');
+            throw new Error('Audit cancelled by user');
           }
         } else {
-          console.log('All retries exhausted.')
-          throw err
+          console.log('All retries exhausted.');
+          throw err;
         }
       }
     }
@@ -138,59 +137,70 @@ const AuditOne = () => {
 
   const handleCancelAudit = async () => {
     setIsCancelled(true);
-    setRunningStatus("cancelled")
-    await window.electronAPI.cancelAudit().catch(console.error);
+    try {
+      await window.electronAPI.cancelAudit()
+      setRunningStatus("cancelled")
+      setTitleHeader("Audit Cancelled")
+      setErrorMessage("Audit was cancelleed by the user.")
+    } catch (err) {
+      console.error("Cancel audit failed:", err)
+    }
   };
 
   const handleAllSizesAudit = async () => {
+    setRunningStatus("running");
+    setTitleHeader("Auditing All Sizes...");
+    setPathName(getLastPathSegment(fullUrl));
+    setAuditLogs([]);
+    setIsCancelled(false);
     try {
-      setPathName(getLastPathSegment(fullUrl));
-      setTitleHeader("Auditing Page In All Sizes");
-      setRunningStatus("running");
-      setIsCancelled(false);
-
-      const result = await runAllTypesAudit(
-        fullUrl,
-        userAgent,
-        pLimit,
-        getLastPathSegment,
-        'custom-audit-results',
-        isCancelledRef.current || false,
-        setRunningStatus,
-        retryAudit
-      );
-      console.log(result)
+      const result = await retryAudit(async () => {
+        const result = await runAllTypesAudit(
+          fullUrl,
+          userAgent,
+          pLimit,
+          getLastPathSegment,
+          'custom-audit-results',
+          isCancelledRef.current,
+          setRunningStatus,
+          retryAudit
+        );
+        console.log(`runAllTypesAudit result:`, result);
+        if (typeof result === "string" && result.includes("Audit complete.")) {
+          return "Audit complete.";
+        } else if (typeof result === "string" && result.includes("Audit incomplete.")) {
+          throw new Error(`AuditOne handleAllSizesAudit: Audit failed for all: ${result}`);
+        } else if (typeof result === "object" && Object.values(result).every(r => r.accessibilityScore > 0)) {
+          return "Audit complete.";
+        }
+        throw new Error(`AuditOne handleAllSizesAudit: Audit failed for all: ${JSON.stringify(result)}`);
+      });
+      console.log(`All sizes audit completed: ${result}`);
       setRunningStatus("finished");
       setTitleHeader("Finished Auditing All Sizes");
-      setAuditLogs((prev) => [...prev, JSON.stringify(result, null, 2)]);
     } catch (err) {
-      console.error("handleAllSizesAudit failed:", err);
-      if (isCancelled) {
+      console.error("handleAllSizesAudit in AuditOne.jsx failed:", err);
+      if (err.message === "Audit cancelled by user") {
         setRunningStatus("cancelled");
-        setTitleHeader('Audit Cancelled');
-        setErrorMessage('Audit was cancelled by the user.');
+        setTitleHeader("Audit Cancelled");
+        setErrorMessage("Audit was cancelled by the user.");
       } else {
         setRunningStatus("error");
         setTitleHeader("Audit Error");
-        setErrorMessage(err.message || 'Failed to complete all sizes audit.');
+        setErrorMessage(err.message || "Failed to complete all sizes audit.");
       }
     }
   };
 
   const handleAudit = async () => {
+    setRunningStatus("running");
+    setPathName(getLastPathSegment(fullUrl));
+    setTitleHeader("Auditing...");
+    setAuditLogs([]);
     try {
-      setPathName(getLastPathSegment(fullUrl));
-      setRunningStatus("running");
-      setTitleHeader("Auditing Page...");
-      setIsCancelled(false);
-      const outputType = testingMethod === "desktop" ? "desk" : "mobile";
-      const outputPath = `./audits/custom-audit-results/${outputType}-${getLastPathSegment(
-        fullUrl
-      )}.json`;
-      if (isCancelledRef.current) {
-        throw new Error("Audit cancelled by user");
-      }
-      const processId = `audit-${Date.now}`
+      const outputPath = `audits/custom-audit-results/${testingMethod}-${getLastPathSegment(fullUrl)}.json`;
+      const processId = `${testingMethod}-${Date.now()}`;
+      console.log(`Starting audit for ${fullUrl}, method: ${testingMethod}, output: ${outputPath}`);
       const result = await retryAudit(async () => {
         const result = await window.electronAPI.getSpawn(
           fullUrl,
@@ -200,23 +210,25 @@ const AuditOne = () => {
           testingMethod === "desktop" ? 1920 : 500,
           processId
         );
-        if (result !== "Audit complete.") {
-          throw new Error(`Audit failed for ${testingMethod}`);
+        console.log(`get-spawn result:`, result);
+        if (typeof result === "string" && result.includes("Audit complete.")) {
+          return "Audit complete.";
+        } else if (typeof result === "string" && result.includes("Audit incomplete.")) {
+          throw new Error(`AuditOne handleAudit: Audit failed for ${testingMethod}: ${result}`);
+        } else if (typeof result === "object" && result.accessibilityScore > 0) {
+          return "Audit complete.";
         }
-        if (isCancelledRef.current) {
-          throw new Error("Audit cancelled by user");
-        }
-        return result;
+        throw new Error(`AuditOne handleAudit: Audit failed for ${testingMethod}: ${JSON.stringify(result)}`);
       });
-      console.log(result);
+      console.log(`Audit completed: ${result}`);
       setRunningStatus("finished");
       setTitleHeader("Audit Result");
     } catch (err) {
       console.error("handleAudit in AuditOne.jsx failed:", err);
       if (err.message === "Audit cancelled by user") {
         setRunningStatus("cancelled");
-        setTitleHeader('Audit Cancelled');
-        setErrorMessage('Audit was cancelled by the user.');
+        setTitleHeader("Audit Cancelled");
+        setErrorMessage("Audit was cancelled by the user.");
       } else {
         setRunningStatus("error");
         setTitleHeader("Audit Error");

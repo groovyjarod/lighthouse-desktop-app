@@ -1,30 +1,88 @@
-const { app, BrowserWindow, ipcMain, dialog } = require("electron");
+const { app, BrowserWindow, ipcMain, shell } = require("electron");
 const fs = require("fs");
 const fsPromise = require("fs").promises;
 const path = require("path");
 const os = require("os");
+const puppeteer = require("puppeteer")
 const child_process = require("child_process");
 const pLimit = require("p-limit");
-const pLimitDefault = require("p-limit").default
+const pLimitDefault = require("p-limit").default;
+const isDev = require("electron-is-dev");
 require("@electron/remote/main").initialize();
-let activeProcesses = new Map()
+const glob = require('glob');
 
-const createWindow = () => {
-  const win = new BrowserWindow({
-    width: 800,
-    height: 600,
-    webPreferences: {
-      contextIsolation: true,
-      sandbox: false,
-      preload: path.join(__dirname, "preload.js"),
-      // contextIsolation: false,
-      // enableRemoteModule: true,
-      // nodeIntegration: true,
-    },
-  });
+const isPackaged = app.isPackaged;
+let chromiumPath;
+if (isPackaged) {
+  const chromiumGlob = path.join(process.resourcesPath, 'node_modules/puppeteer/.local-chromium/mac_arm-*/chrome-mac-arm64/Chromium.app/Contents/MacOS/Chromium');
+  const matches = glob.sync(chromiumGlob);
+  chromiumPath = matches[0] || '/Users/jarodday/.cache/puppeteer/chrome/mac_arm-137.0.7151.70/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing';
+} else {
+  chromiumPath = process.env.PUPPETEER_EXECUTABLE_PATH || '/Users/jarodday/.cache/puppeteer/chrome/mac_arm-137.0.7151.70/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing';
+}
 
-  win.loadURL("http://localhost:5173");
+console.log(`Setting PUPPETEER_EXECUTABLE_PATH to ${chromiumPath}`);
+fsPromise.access(chromiumPath)
+  .then(() => console.log('Chromium path exists'))
+  .catch(err => console.error('Chromium path error:', err.message));
+
+process.env.PUPPETEER_EXECUTABLE_PATH = puppeteer.executablePath()
+
+// ------------ Window-handling code ------------
+
+const activeProcesses = new Map();
+const createWindow = async () => {
+  try {
+    const preloadPath = path.join(__dirname, "preload.js");
+    console.log('Preload path:', preloadPath);
+    try {
+      await fsPromise.access(preloadPath)
+    } catch (err) {
+      console.error('Preload file not accessible:', err)
+      throw err
+    }
+
+    const win = new BrowserWindow({
+      width: 800,
+      height: 600,
+      webPreferences: {
+        contextIsolation: true,
+        sandbox: true,
+        preload: preloadPath,
+        // contextIsolation: false,
+        // enableRemoteModule: true,
+        // nodeIntegration: true,
+      },
+    });
+
+    win.webContents.on('preload-error', (event, preloadPath, error) => {
+      console.error(`Preload error for ${preloadPath}:`, error)
+    })
+    const startURL = isDev
+      ? "http://localhost:5173"
+      : `file://${path.join(__dirname, "build", "index.html")}`;
+
+    win.loadURL(startURL);
+    console.log('Window loaded.')
+    win.on("closed", () => win.destroy());
+
+  } catch (err) {
+    console.error('Failed to create window:', err)
+    app.quit()
+  }
 };
+
+app.on("ready", createWindow);
+
+app.on("window-all-closed", () => {
+  if (process.platform !== "darwin") app.quit();
+});
+
+app.on("activate", () => {
+  if (BrowserWindow.getAllWindows().length === 0) createWindow();
+});
+
+// ------------ IPC Handler Functions ------------
 
 const loadFolderData = async (folderName) => {
   const folderPath = path.join(__dirname, folderName);
@@ -41,75 +99,77 @@ const loadFolderData = async (folderName) => {
 };
 
 ipcMain.handle("get-wiki-paths", async () => {
-  const resultsRaw = fs.readFileSync("./settings/wikiPaths.txt", "utf8");
+  const resultsRaw = await fsPromise.readFile("./settings/wikiPaths.txt", "utf8");
   const result = resultsRaw.split("\n").filter(Boolean);
   return result;
 });
 
-ipcMain.handle("get-file", async (event, filePath) => fsPromise.readFile(filePath, 'utf8'))
+ipcMain.handle("get-file", async (event, filePath) => {
+  return await fsPromise.readFile(filePath, "utf8")
+});
 
 ipcMain.handle("read-audit-folder", async () => {
-  return await loadFolderData("audits/audit-results")
+  return await loadFolderData("audits/audit-results");
 });
 
 ipcMain.handle("read-old-audit-folder", async () => {
-  return await loadFolderData("audits/old-audit-results")
+  return await loadFolderData("audits/old-audit-results");
 });
 
 ipcMain.handle("read-comparison-folder", async () => {
-  return await loadFolderData("audits/audit-comparisons")
+  return await loadFolderData("audits/audit-comparisons");
 });
 
 ipcMain.handle("read-custom-audits", async () => {
-  return await loadFolderData("audits/custom-audit-results")
+  return await loadFolderData("audits/custom-audit-results");
 });
 
 ipcMain.handle("read-options-folder", async () => {
-  return await loadFolderData("settings")
+  return await loadFolderData("settings");
 });
 
 ipcMain.handle("get-audit-metadata", async (event, fileFolder, auditData) => {
   try {
-    const filePath = path.join(__dirname, 'audits', fileFolder, auditData)
-    let jsonAuditRaw
+    const filePath = path.join(__dirname, "audits", fileFolder, auditData);
+    let jsonAuditRaw;
     try {
-      jsonAuditRaw = await fsPromise.readFile(filePath, 'utf8')
+      jsonAuditRaw = await fsPromise.readFile(filePath, "utf8");
     } catch (err) {
-      console.error(`Failed to read file ${filePath}:`, err)
-      throw new Error(`Unable to read audit file: ${err.message}`)
+      console.error(`Failed to read file ${filePath}:`, err);
+      throw new Error(`Unable to read audit file: ${err.message}`);
     }
 
-    let jsonAudit
+    let jsonAudit;
     try {
-      jsonAudit = JSON.parse(jsonAuditRaw)
+      jsonAudit = JSON.parse(jsonAuditRaw);
     } catch (err) {
-      console.error(`Failed to parse JSON for ${filePath}:`, err)
-      throw new Error(`Invalid JSON in audit file: ${err.message}`)
+      console.error(`Failed to parse JSON for ${filePath}:`, err);
+      throw new Error(`Invalid JSON in audit file: ${err.message}`);
     }
 
-    let itemCount = 0
-    let subItemCount = 0
-    let accessibilityScore
+    let itemCount = 0;
+    let subItemCount = 0;
+    let accessibilityScore;
 
-    if (jsonAudit.hasOwnProperty('stats1920pxWidth')) {
+    if (jsonAudit.hasOwnProperty("stats1920pxWidth")) {
       return {
         itemCount: "All",
         subItemCount: "Sizes",
         score: "Audit",
-        length: jsonAuditRaw.split("\n").length
-      }
+        length: jsonAuditRaw.split("\n").length,
+      };
     }
 
     for (const [key, value] of Object.entries(jsonAudit)) {
       if (typeof value === "object" && value?.items) {
         for (let itemData of value["items"]) {
-          itemCount++
+          itemCount++;
           for (const [itemKey, itemValue] of Object.entries(itemData)) {
-            if (itemKey === "subItems") subItemCount++
+            if (itemKey === "subItems") subItemCount++;
           }
         }
       } else if (key === "accessibilityScore") {
-        accessibilityScore = value
+        accessibilityScore = value;
       }
     }
 
@@ -118,23 +178,37 @@ ipcMain.handle("get-audit-metadata", async (event, fileFolder, auditData) => {
       subItemCount: subItemCount,
       score: accessibilityScore,
       length: jsonAuditRaw.split("\n").length,
-    }
+    };
   } catch (err) {
-    console.error('get-audit-metadata failed:', err)
-    throw err
+    console.error("get-audit-metadata failed:", err);
+    throw err;
   }
 });
 
+ipcMain.handle('open-results-file', async (event, filename, folder) => {
+  try {
+    const fullPath = path.join(__dirname, `./audits/${folder}`, filename)
+    shell.openPath(fullPath)
+    shell.showItemInFolder(fullPath)
+  } catch (err) {
+    console.error('Could not open results file:', err)
+    throw err
+  }
+})
+
 ipcMain.handle("save-file", async (event, filePath, fileContent) => {
   try {
-
-    await fs.writeFileSync(filePath, JSON.stringify(fileContent, null, 2), "utf8");
+    await fs.writeFileSync(
+      filePath,
+      JSON.stringify(fileContent, null, 2),
+      "utf8"
+    );
     return { success: true, filePath: filePath, fileContent: fileContent };
   } catch (error) {
     console.error(`Failed to save file: ${error}`);
     return { success: false, error: error.message };
   }
-})
+});
 
 ipcMain.handle("get-current-filename", async () => {
   const auditDirectory = path.join(__dirname, "settings");
@@ -150,9 +224,9 @@ ipcMain.handle("get-current-filename", async () => {
 
 ipcMain.handle("replace-file", async (event, newData, newPath) => {
   const filePath = path.join(__dirname, newPath);
-  if (typeof(newData) === 'object') {
-    const parsedNewData = newData.join('\n')
-    fs.writeFileSync(filePath, parsedNewData, 'utf8')
+  if (typeof newData === "object") {
+    const parsedNewData = newData.join("\n");
+    fs.writeFileSync(filePath, parsedNewData, "utf8");
   } else {
     fs.writeFileSync(filePath, newData, "utf8");
   }
@@ -172,9 +246,9 @@ ipcMain.handle("access-os-data", async () => {
 });
 
 ipcMain.handle("get-spawn", async (event, urlPath, outputPath, testing_method, user_agent, viewport, processId) => {
-    const TIMEOUT_ALL_TESTS = 40000
-    const TIMEOUT_SINGULAR_TEST = 30000
-    let timeoutId
+    const TIMEOUT_ALL_TESTS = 40000;
+    const TIMEOUT_SINGULAR_TEST = 30000;
+    let timeoutId;
     const spawnPromise = new Promise((resolve, reject) => {
       const child = child_process.spawn(
         "node",
@@ -184,131 +258,158 @@ ipcMain.handle("get-spawn", async (event, urlPath, outputPath, testing_method, u
           outputPath,
           testing_method,
           user_agent,
-          viewport
+          viewport,
         ],
         { stdio: ["ignore", "pipe", "pipe"] }
       );
 
-      activeProcesses.set(processId, child)
+      activeProcesses.set(processId, child);
 
-      let output = ''
-      let errorOutput = ''
+      let output = "";
+      let errorOutput = "";
 
-      child.stdout.on('data', data => output += data.toString())
+      child.stdout.on("data", (data) => (output += data.toString()));
 
-      child.stderr.on('data', data => errorOutput += data.toString())
+      child.stderr.on("data", (data) => (errorOutput += data.toString()));
 
       child.on("close", (code) => {
-        clearTimeout(timeoutId)
+        clearTimeout(timeoutId);
         if (code === 0) {
-            try {
-                const result = JSON.parse(output.trim())
-                console.log(result)
-                resolve(result)
-            } catch (err) {
-                resolve(output.trim())
-            }
+          try {
+            const result = JSON.parse(output.trim());
+            console.log(result);
+            resolve(result);
+          } catch (err) {
+            resolve(output.trim());
+          }
         } else {
-            reject(new Error(`Child exited with code ${code}: ${errorOutput}`))
+          reject(new Error(`Child exited with code ${code}: ${errorOutput}`));
         }
       });
 
       child.on("error", (err) => {
-        clearTimeout(timeoutId)
-        activeProcesses.delete(processId)
+        clearTimeout(timeoutId);
+        activeProcesses.delete(processId);
         console.error(`Spawn error for ${urlPath}: ${err}`);
         reject(err);
       });
     });
 
     const timeoutPromise = new Promise((resolve) => {
-      timeoutId = setTimeout(() => {
-        console.warn(`Audit timeout for ${urlPath}`)
-        activeProcesses.delete(processId)
-        resolve("Audit incomplete.")
-      }, testing_method == 'all' ? TIMEOUT_ALL_TESTS : TIMEOUT_SINGULAR_TEST);
-    })
+      timeoutId = setTimeout(
+        () => {
+          console.warn(`Audit timeout for ${urlPath}`);
+          const child = activeProcesses.get(processId)
+          if (child) {
+            child.kill("SIGTERM")
+            setTimeout(() => {
+              if (!child.killed) {
+                console.warn(`Child process ${processId} did not terminate, sending SIGKILL.`)
+                child.kill("SIGKILL")
+              }
+              activeProcesses.delete(processId)
+            }, 1000);
+          }
+          resolve("Audit incomplete.");
+        },
+        testing_method == "all" ? TIMEOUT_ALL_TESTS : TIMEOUT_SINGULAR_TEST
+      );
+    });
 
-    return Promise.race([spawnPromise, timeoutPromise])
-});
+    return Promise.race([spawnPromise, timeoutPromise]);
+  }
+);
 
-ipcMain.handle('cancel-audit', async () => {
+ipcMain.handle("cancel-audit", async () => {
   try {
     for (const [id, process] of activeProcesses) {
-      process.kill('SIGTERM');
+      process.kill("SIGTERM");
       activeProcesses.delete(id);
     }
 
-    const folderPath = './audits/all-audit-sizes';
+    const folderPath = "./audits/all-audit-sizes";
     try {
       const files = await fsPromise.readdir(folderPath);
-      await Promise.all(files.map(file => fsPromise.unlink(path.join(folderPath, file))));
+      await Promise.all(
+        files.map((file) => fsPromise.unlink(path.join(folderPath, file)))
+      );
     } catch (error) {
-      console.warn('Failed to clean up temporary files:', error);
+      console.warn("Failed to clean up temporary files:", error);
     }
-    return { success: true, message: 'All active audits cancelled and temporary files cleaned.' };
+    return {
+      success: true,
+      message: "All active audits cancelled and temporary files cleaned.",
+    };
   } catch (error) {
-    console.error('Failed to cancel audits:', error);
+    console.error("Failed to cancel audits:", error);
     return { success: false, error: error.message };
   }
 });
 
-ipcMain.handle('move-audit-files', async () => {
-    const sourceDir = path.join(__dirname, 'audits/audit-results')
-    const destinationDir = path.join(__dirname, 'audits/old-audit-results')
+ipcMain.handle("move-audit-files", async () => {
+  const sourceDir = path.join(__dirname, "audits/audit-results");
+  const destinationDir = path.join(__dirname, "audits/old-audit-results");
 
-    const limit = pLimitDefault(5)
+  const limit = pLimitDefault(5);
 
-    try {
-        await fsPromise.mkdir(destinationDir, { recursive: true })
+  try {
+    await fsPromise.mkdir(destinationDir, { recursive: true });
 
-        const existingFiles = await fsPromise.readdir(destinationDir)
-        await Promise.all(existingFiles.map(file => {
-          limit(() =>
-            fsPromise.rm(path.join(destinationDir, file), { recursive: true, force: true })
-          )
-        }))
-
-        const filesToMove = await fsPromise.readdir(sourceDir)
-        await Promise.all(filesToMove.map(async (file) => {
-          limit(async () => {
-            const sourcePath = path.join(sourceDir, file)
-            const destinationPath = path.join(destinationDir, file)
-
-            await fsPromise.copyFile(sourcePath, destinationPath)
-            await fsPromise.rm(sourcePath)
+    const existingFiles = await fsPromise.readdir(destinationDir);
+    await Promise.all(
+      existingFiles.map((file) => {
+        limit(() =>
+          fsPromise.rm(path.join(destinationDir, file), {
+            recursive: true,
+            force: true,
           })
-        }))
+        );
+      })
+    );
 
-        return { success: true, message: 'Files moved successfully.' }
-    } catch (err) {
-        console.error('Error moving audit files:', err)
-        return { success: false, message: 'Failed to move files.', error: err.message }
-    }
-})
+    const filesToMove = await fsPromise.readdir(sourceDir);
+    await Promise.all(
+      filesToMove.map(async (file) => {
+        limit(async () => {
+          const sourcePath = path.join(sourceDir, file);
+          const destinationPath = path.join(destinationDir, file);
 
-ipcMain.handle('clear-all-sized-audits-folder', async () => {
-    const limit = pLimitDefault(1)
-    try {
-      const destination = path.join(__dirname, 'audits/all-audit-sizes')
-      const existingFiles = await fsPromise.readdir(destination)
-      await Promise.all(existingFiles.map(file => {
-        limit(() => fsPromise.rm(path.join(destination, file), { recursive: true, force: true }))
-      }))
-      return { success: true }
-    } catch (err) {
-      return { success: false, message: err }
-    }
-})
+          await fsPromise.copyFile(sourcePath, destinationPath);
+          await fsPromise.rm(sourcePath);
+        });
+      })
+    );
+
+    return { success: true, message: "Files moved successfully." };
+  } catch (err) {
+    console.error("Error moving audit files:", err);
+    return {
+      success: false,
+      message: "Failed to move files.",
+      error: err.message,
+    };
+  }
+});
+
+ipcMain.handle("clear-all-sized-audits-folder", async () => {
+  const limit = pLimitDefault(1);
+  try {
+    const destination = path.join(__dirname, "audits/all-audit-sizes");
+    const existingFiles = await fsPromise.readdir(destination);
+    await Promise.all(
+      existingFiles.map((file) => {
+        limit(() =>
+          fsPromise.rm(path.join(destination, file), {
+            recursive: true,
+            force: true,
+          })
+        );
+      })
+    );
+    return { success: true };
+  } catch (err) {
+    return { success: false, message: err };
+  }
+});
 
 ipcMain.handle("get-p-limit", async () => pLimit);
-
-app.on("ready", () => createWindow());
-
-app.on("window-all-closed", () => {
-  if (process.platform !== "darwin") app.quit();
-});
-
-app.on("activate", () => {
-  if (BrowserWindow.getAllWindows().length === 0) createWindow();
-});

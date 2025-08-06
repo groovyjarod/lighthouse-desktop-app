@@ -14,6 +14,7 @@ export default async function generatePuppeteerAudit(
   user_agent,
   viewportWidth
 ) {
+  console.log(`Using PUPPETEER_EXECUTABLE_PATH: ${process.env.PUPPETEER_EXECUTABLE_PATH}`);
   const OUTPUT_FORMAT = "json";
   const TESTING_METHOD = testing_method;
   const isMobile = TESTING_METHOD === "mobile";
@@ -23,6 +24,7 @@ export default async function generatePuppeteerAudit(
 
   try {
     const browser = await puppeteer.launch({
+      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH,
       headless: true,
       args: [
         "--no-sandbox",
