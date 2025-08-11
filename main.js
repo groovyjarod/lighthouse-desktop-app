@@ -7,26 +7,48 @@ const puppeteer = require("puppeteer")
 const child_process = require("child_process");
 const pLimit = require("p-limit");
 const pLimitDefault = require("p-limit").default;
-const isDev = require("electron-is-dev");
 require("@electron/remote/main").initialize();
-const glob = require('glob');
 
-const isPackaged = app.isPackaged;
+let nodeBinary
 let chromiumPath;
+const isPackaged = app.isPackaged;
+const isDev = !app.isPackaged
+
 if (isPackaged) {
-  const chromiumGlob = path.join(process.resourcesPath, 'node_modules/puppeteer/.local-chromium/mac_arm-*/chrome-mac-arm64/Chromium.app/Contents/MacOS/Chromium');
-  const matches = glob.sync(chromiumGlob);
-  chromiumPath = matches[0] || '/Users/jarodday/.cache/puppeteer/chrome/mac_arm-137.0.7151.70/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing';
+  const platform = os.platform();
+  if (platform === "darwin") {
+    chromiumPath = path.join(
+      process.resourcesPath,
+      'app.asar.unpacked/chrome-browser',
+      'Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing'
+    );
+    nodeBinary = path.join(process.resourcesPath, "node")
+  } else if (platform === "win32") {
+    chromiumPath = path.join(
+      process.resourcesPath,
+      'app.asar.unpacked/chrome-browser',
+      'chrome-win/chrome.exe'
+    );
+    nodeBinary = path.join(process.resourcesPath, "node.exe")
+  } else {
+    throw new Error(`Unsupported platform: ${platform}`);
+  }
 } else {
-  chromiumPath = process.env.PUPPETEER_EXECUTABLE_PATH || '/Users/jarodday/.cache/puppeteer/chrome/mac_arm-137.0.7151.70/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing';
+  chromiumPath = puppeteer.executablePath();
+  nodeBinary = "node"
+  // chromiumPath = path.join(
+  //   __dirname,
+  //   'chrome-browser',
+  //   'Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing'
+  // )
 }
 
 console.log(`Setting PUPPETEER_EXECUTABLE_PATH to ${chromiumPath}`);
-fsPromise.access(chromiumPath)
-  .then(() => console.log('Chromium path exists'))
-  .catch(err => console.error('Chromium path error:', err.message));
+// fs.accessSync(chromiumPath)
+//   .then(() => console.log('Chromium path exists'))
+//   .catch(err => console.error('Chromium path error:', err.message));
 
-process.env.PUPPETEER_EXECUTABLE_PATH = puppeteer.executablePath()
+process.env.PUPPETEER_EXECUTABLE_PATH = chromiumPath
 
 // ------------ Window-handling code ------------
 
@@ -58,12 +80,18 @@ const createWindow = async () => {
     win.webContents.on('preload-error', (event, preloadPath, error) => {
       console.error(`Preload error for ${preloadPath}:`, error)
     })
+
     const startURL = isDev
       ? "http://localhost:5173"
-      : `file://${path.join(__dirname, "build", "index.html")}`;
+      : `file://${path.join(__dirname, "build/index.html")}`;
 
-    win.loadURL(startURL);
+    if (isDev) {
+      win.loadURL("http://localhost:5173");
+    } else {
+      win.loadFile(path.join(__dirname, "build", "index.html"))
+    }
     console.log('Window loaded.')
+    console.log(isDev)
     win.on("closed", () => win.destroy());
 
   } catch (err) {
@@ -85,47 +113,102 @@ app.on("activate", () => {
 // ------------ IPC Handler Functions ------------
 
 const loadFolderData = async (folderName) => {
-  const folderPath = path.join(__dirname, folderName);
-  const entries = await fsPromise.readdir(folderPath);
-  return entries.map((name) => {
-    const fullPath = path.join(folderPath, name);
-    const stats = fs.statSync(fullPath);
-    return {
-      name,
-      isDirectory: stats.isDirectory(),
-      size: stats.size,
-    };
-  });
+  const entries = await fsPromise.readdir(folderName);
+  return Promise.all(entries.map(async (name) => {
+    const fullPath = path.join(folderName, name)
+    try {
+      const stats = await fsPromise.stat(fullPath)
+      return {
+        name,
+        isDiectory: stats.isDirectory(),
+        size: stats.size,
+      }
+    } catch (err) {
+      console.error("In LoadFolderData: Error in fsPromise.stat", err)
+    }
+  }))
 };
 
+ipcMain.handle('check-node', async () => {
+  const testNodePath = path.join(process.resourcesPath, os.platform() === 'win32' ? 'node.exe' : 'node');
+
+  try {
+    fs.access(testNodePath, fs.constants.X_OK, (err) => {
+      if (err) {
+        console.error('Node binary is missing or not executable at:', testNodePath);
+        throw err
+      } else {
+        console.log('Node binary is accessible at:', testNodePath);
+        child_process.execFile(testNodePath, ['--version'], (error, stdout, stderr) => {
+          if (error) {
+            console.error('Failed to execute node binary:', error);
+            throw error
+          } else {
+            console.log('Node binary version:', stdout.trim());
+          }
+        });
+      }
+    });
+    return { success: true, testNodePath: testNodePath }
+  } catch (err) {
+    console.error('yeah that didn\'t work lol' )
+    return { success: false, error: err}
+  }
+})
+
 ipcMain.handle("get-wiki-paths", async () => {
-  const resultsRaw = await fsPromise.readFile("./settings/wikiPaths.txt", "utf8");
+  const basePath = isDev
+    ? path.join(__dirname, 'settings', 'wikiPaths.txt')
+    : path.join(process.resourcesPath, 'settings', 'wikiPaths.txt')
+  const resultsRaw = await fsPromise.readFile(basePath, "utf8");
   const result = resultsRaw.split("\n").filter(Boolean);
   return result;
 });
 
 ipcMain.handle("get-file", async (event, filePath) => {
-  return await fsPromise.readFile(filePath, "utf8")
+  const basePath = isDev
+    ? path.join(__dirname, filePath)
+    : path.join(process.resourcesPath, filePath)
+  return await fsPromise.readFile(basePath, "utf8")
 });
 
 ipcMain.handle("read-audit-folder", async () => {
-  return await loadFolderData("audits/audit-results");
+  const basePath = isDev
+    ? path.join(__dirname, "audits", "audit-results")
+    : path.join(process.resourcesPath, "audits", "audit-results");
+
+  try {
+    return await loadFolderData(basePath)
+  } catch (err) {
+    console.error("error reading audit folder:", err.message)
+    return []
+  }
 });
 
 ipcMain.handle("read-old-audit-folder", async () => {
-  return await loadFolderData("audits/old-audit-results");
-});
+  const basePath = isDev
+    ? path.join(__dirname, "audits", "old-audit-results")
+    : path.join(process.resourcesPath, "audits", "old-audit-results");
 
-ipcMain.handle("read-comparison-folder", async () => {
-  return await loadFolderData("audits/audit-comparisons");
+  try {
+    return await loadFolderData(basePath)
+  } catch (err) {
+    console.error("error reading audit folder:", err.message)
+    return []
+  }
 });
 
 ipcMain.handle("read-custom-audits", async () => {
-  return await loadFolderData("audits/custom-audit-results");
-});
+  const basePath = isDev
+    ? path.join(__dirname, "audits", "custom-audit-results")
+    : path.join(process.resourcesPath, "audits", "custom-audit-results");
 
-ipcMain.handle("read-options-folder", async () => {
-  return await loadFolderData("settings");
+  try {
+    return await loadFolderData(basePath)
+  } catch (err) {
+    console.error("error reading audit folder:", err.message)
+    return []
+  }
 });
 
 ipcMain.handle("get-audit-metadata", async (event, fileFolder, auditData) => {
@@ -223,12 +306,22 @@ ipcMain.handle("get-current-filename", async () => {
 });
 
 ipcMain.handle("replace-file", async (event, newData, newPath) => {
-  const filePath = path.join(__dirname, newPath);
-  if (typeof newData === "object") {
-    const parsedNewData = newData.join("\n");
-    fs.writeFileSync(filePath, parsedNewData, "utf8");
-  } else {
-    fs.writeFileSync(filePath, newData, "utf8");
+  try {
+    const basePath = isDev
+      ? path.join(__dirname, newPath)
+      : path.join(process.resourcesPath, newPath)
+
+    if (typeof newData === "object") {
+      const parsedNewData = newData.join("\n");
+      fs.writeFileSync(basePath, parsedNewData, "utf8");
+      return { success: true, info: newData }
+    } else {
+      fs.writeFileSync(basePath, newData, "utf8");
+      return { success: true, info: newData }
+    }
+  } catch (err) {
+    console.error('Replace File failed:', err)
+    return { success: false, error: err }
   }
 });
 
@@ -245,22 +338,35 @@ ipcMain.handle("access-os-data", async () => {
   return concurrency;
 });
 
-ipcMain.handle("get-spawn", async (event, urlPath, outputPath, testing_method, user_agent, viewport, processId) => {
-    const TIMEOUT_ALL_TESTS = 40000;
-    const TIMEOUT_SINGULAR_TEST = 30000;
+ipcMain.handle("get-spawn", async (event, urlPath, outputPath, testing_method, user_agent, viewport, processId, isUsingUserAgent, isViewingAudit) => {
+    const TIMEOUT_ALL_TESTS = 60000;
+    const TIMEOUT_SINGULAR_TEST = 45000;
     let timeoutId;
+
+    const scriptPath = isDev
+      ? path.join(__dirname, "runAndWriteAudit.mjs")
+      : path.join(process.resourcesPath, "runAndWriteAudit.mjs")
+
+    console.log(`Resolved script path: ${scriptPath}`)
+    console.log(`main.js get-spawn: All args: ${urlPath}, ${outputPath}, ${testing_method}, ${user_agent}, ${viewport}, ${isUsingUserAgent}, ${isViewingAudit}`)
+
     const spawnPromise = new Promise((resolve, reject) => {
       const child = child_process.spawn(
-        "node",
+        nodeBinary,
         [
-          "runAndWriteAudit.mjs",
+          scriptPath,
           urlPath,
           outputPath,
           testing_method,
           user_agent,
           viewport,
+          isUsingUserAgent,
+          isViewingAudit
         ],
-        { stdio: ["ignore", "pipe", "pipe"] }
+        {
+          stdio: ["ignore", "pipe", "pipe"],
+          cwd: isDev ? process.cwd() : process.resourcesPath
+        },
       );
 
       activeProcesses.set(processId, child);
@@ -268,16 +374,24 @@ ipcMain.handle("get-spawn", async (event, urlPath, outputPath, testing_method, u
       let output = "";
       let errorOutput = "";
 
-      child.stdout.on("data", (data) => (output += data.toString()));
+      child.stdout.on("data", (data) => {
+        const log = data.toString()
+        output += log;
+        BrowserWindow.getAllWindows()[0].webContents.send('puppeteer-log', log)
+      });
 
-      child.stderr.on("data", (data) => (errorOutput += data.toString()));
+      child.stderr.on("data", (data) => {
+        const error = data.toString()
+        errorOutput += error;
+        BrowserWindow.getAllWindows()[0].webContents.send('puppeteer-error-1', error)
+      });
 
       child.on("close", (code) => {
         clearTimeout(timeoutId);
+        activeProcesses.delete(processId)
         if (code === 0) {
           try {
             const result = JSON.parse(output.trim());
-            console.log(result);
             resolve(result);
           } catch (err) {
             resolve(output.trim());
@@ -290,7 +404,7 @@ ipcMain.handle("get-spawn", async (event, urlPath, outputPath, testing_method, u
       child.on("error", (err) => {
         clearTimeout(timeoutId);
         activeProcesses.delete(processId);
-        console.error(`Spawn error for ${urlPath}: ${err}`);
+        BrowserWindow.getAllWindows()[0].webContents.send('puppeteer-error-2', err)
         reject(err);
       });
     });
@@ -298,19 +412,20 @@ ipcMain.handle("get-spawn", async (event, urlPath, outputPath, testing_method, u
     const timeoutPromise = new Promise((resolve) => {
       timeoutId = setTimeout(
         () => {
+          BrowserWindow.getAllWindows()[0].webContents.send('puppeteer-error-3', `Audit timeout for ${urlPath}`)
           console.warn(`Audit timeout for ${urlPath}`);
           const child = activeProcesses.get(processId)
           if (child) {
             child.kill("SIGTERM")
             setTimeout(() => {
               if (!child.killed) {
-                console.warn(`Child process ${processId} did not terminate, sending SIGKILL.`)
+                BrowserWindow.getAllWindows()[0].webContents.send('puppeteer-error', `Child process ${processId} did not terminate, sending SIGKILL.`)
                 child.kill("SIGKILL")
               }
               activeProcesses.delete(processId)
             }, 1000);
           }
-          resolve("Audit incomplete.");
+          resolve("get-spawn: did not resolve due to timeout");
         },
         testing_method == "all" ? TIMEOUT_ALL_TESTS : TIMEOUT_SINGULAR_TEST
       );

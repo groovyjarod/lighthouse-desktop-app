@@ -7,9 +7,15 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
+dist/
 dist-ssr
+bin/
+build/
+chrome-browser/
+node_modules/
+checkAppData.txt
+dev_lighthouse.txt
+diff_lighthouse.txt
 *.local
 
 # Editor directories and files

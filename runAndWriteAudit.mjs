@@ -2,42 +2,46 @@ import fs from 'fs/promises';
 import path from 'path';
 import createReport from './Audit_Logic/createFinalizedReport.mjs';
 
-const [,, url, outputFile, testing_method, user_agent, viewport] = process.argv;
+const [,, url, outputFile, testing_method, user_agent, viewport, isUsingUserAgent, isViewingAudit] = process.argv;
 
 if (!url || !outputFile) {
-  console.error("usage: node runAndWriteAudit.mjs <url> <outputFile>");
+  console.error('Usage: node runAndWriteAudit.mjs <url> <outputFile> <testing_method> <user_agent> <viewport> <isUsingUserAgent> <isViewingAudit>');
   console.log('Audit incomplete.');
   process.exit(1);
 }
 
-async function getReportData(url, testing_method, user_agent, viewport) {
+async function getReportData(url, testing_method, user_agent, viewport, isUsingUserAgent, isViewingAudit) {
+  console.log(`getReportData: Starting for URL=${url}, method=${testing_method}, user_agent=${user_agent}, viewport=${viewport}, isUsingUserAgent=${isUsingUserAgent}, isViewingAudit=${isViewingAudit}`);
   try {
-    console.error(`Running createReport for ${url}, method: ${testing_method}, viewport: ${viewport}`);
-    const returnData = await createReport(url, testing_method, user_agent, viewport);
-    console.error(`createReport result: ${JSON.stringify(returnData)}`);
+    const returnData = await createReport(url, testing_method, user_agent, viewport, isUsingUserAgent, isViewingAudit);
+    console.log(`getReportData: Result received, accessibilityScore=${returnData.accessibilityScore || 'none'}`);
     return returnData;
   } catch (err) {
-    console.error(`In runAndWriteAudit / getReportData: ${err.message}`);
+    console.error(`getReportData: Error for ${url}: ${err.message}`);
+    console.error(`getReportData: Stack: ${err.stack}`);
     return { accessibilityScore: 0, error: err.message };
   }
 }
 
 async function main() {
   try {
-    const jsonData = await getReportData(url, testing_method, user_agent, viewport);
+    const jsonData = await getReportData(url, testing_method, user_agent, viewport, isUsingUserAgent, isViewingAudit);
+    console.log(`main: Received data, type=${typeof jsonData}`);
     const parsedData = typeof jsonData === 'string' ? JSON.parse(jsonData) : jsonData;
     if (parsedData.accessibilityScore > 0) {
+      console.log(`main: Writing report to ${outputFile}, accessibilityScore=${parsedData.accessibilityScore}`);
       const outputDir = path.dirname(outputFile);
       await fs.mkdir(outputDir, { recursive: true });
       await fs.writeFile(outputFile, JSON.stringify(parsedData, null, 2), 'utf8');
-      console.log('Audit complete.');
+      console.log('main: Audit complete, report written successfully');
     } else {
-      console.error(`Audit incomplete: accessibilityScore=${parsedData.accessibilityScore}, error=${parsedData.error || 'none'}`);
-      console.log('Audit incomplete.');
+      console.error(`main: Audit incomplete, accessibilityScore=${parsedData.accessibilityScore}, error=${parsedData.error || 'none'}`);
+      console.log('main: Audit incomplete');
     }
   } catch (err) {
-    console.error(`In runAndWriteAudit: Audit failed for ${url}: ${err.message}`);
-    console.log('Audit incomplete.');
+    console.error(`main: Audit failed for ${url}: ${err.message}`);
+    console.error(`main: Stack: ${err.stack}`);
+    console.log('main: Audit incomplete');
   }
 }
 
