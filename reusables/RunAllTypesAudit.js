@@ -1,26 +1,27 @@
-import pLimit from 'p-limit';
-import path from 'path';
+// import pLimit from 'p-limit';
 
 const runAllTypesAudit = async (
   fullUrl,
   userAgent,
-  pLimitLib = pLimit,
+  pLimit,
   getLastPathSegment,
   folderPath,
   isCancelled,
   setRunningStatus,
-  retryAudit
+  retryAudit,
+  isUsingUserAgent
 ) => {
   const SIZES = [1920, 1280, 900, 500];
 
   if (isCancelled) {
     throw new Error("Audit cancelled by user");
   }
-
-  const runAllSizes = pLimitLib(4);
+  const isViewingAudit = "no";
+  const runAllSizes = pLimit(4);
   const tasks = SIZES.map((size) =>
     runAllSizes(async () => {
       if (isCancelled) {
+        setRunningStatus("cancelled");
         throw new Error("Audit cancelled by user");
       }
       const processId = `audit-${Date.now()}-${size}`;
@@ -32,7 +33,9 @@ const runAllTypesAudit = async (
             size > 500 ? "desktop" : "mobile",
             userAgent,
             size,
-            processId
+            processId,
+            isUsingUserAgent,
+            isViewingAudit
           );
           console.log(`get-spawn result for size ${size}:`, result);
           if (typeof result === "string" && result.includes("Audit complete.")) {
@@ -55,6 +58,7 @@ const runAllTypesAudit = async (
   const allAudits = {};
   const auditPromises = SIZES.map(async (size) => {
     if (isCancelled) {
+      setRunningStatus("cancelled");
       throw new Error("Audit cancelled by user");
     }
     try {

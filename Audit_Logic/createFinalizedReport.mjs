@@ -1,49 +1,52 @@
-import runLighthouse from './generateChromeAudit.mjs';
 import generatePuppeteerAudit from './generatePuppeteerAudit.mjs';
 import trimAuditData from './trimAuditData.mjs';
 import classifyIssue from './classifyIssue.mjs';
 
 // run lighthouse and return data as json object
-async function getRawAuditData(urlPath, testing_method, user_agent, viewport) {
-  console.log(`getRawAuditData: Starting for ${urlPath}, method: ${testing_method}, viewport: ${viewport}`);
+async function getRawAuditData(urlPath, testing_method, user_agent, viewport, isUsingUserAgent, isViewingAudit) {
+  console.log(`getRawAuditData: Starting for ${urlPath}, method: ${testing_method}, viewport: ${viewport}, viewing audit? ${isViewingAudit}, using user agent? ${isUsingUserAgent}`);
   try {
-    const [rawResults, accessibilityScore] = await generatePuppeteerAudit(urlPath, testing_method, user_agent, viewport);
-    console.log(`getRawAuditData: accessibilityScore=${accessibilityScore}`);
+    const [rawResults, accessibilityScore] = await generatePuppeteerAudit(urlPath, testing_method, user_agent, viewport, isUsingUserAgent, isViewingAudit);
+    console.log(`getRawAuditData: Completed. accessibilityScore=${accessibilityScore}, rawResultsType=${typeof rawResults}`);
     return accessibilityScore === 0 ? [null, 0] : [rawResults, accessibilityScore];
   } catch (err) {
     console.error(`getRawAuditData: Failed for ${urlPath}: ${err.message}`);
+    console.error(`getRawAuditData: Stack: ${err.stack}`)
     return [null, 0];
   }
 }
 
 // retrieve json object and return object with relevant data
-async function getAuditAccessibilityData(urlPath, testing_method, user_agent, viewport) {
+async function getAuditAccessibilityData(urlPath, testing_method, user_agent, viewport, isUsingUserAgent, isViewingAudit) {
   console.log(`getAuditAccessibilityData: Starting for ${urlPath}`);
   try {
-    const [auditResults, accessibilityScore] = await getRawAuditData(urlPath, testing_method, user_agent, viewport);
+    const [auditResults, accessibilityScore] = await getRawAuditData(urlPath, testing_method, user_agent, viewport, isUsingUserAgent, isViewingAudit);
     if (accessibilityScore === 0) {
       console.log(`getAuditAccessibilityData: accessibilityScore=0, returning null`);
       return [null, 0];
     }
+    console.log(`getAuditAccessibilityData: Trimming audit data`);
     const trimmedData = trimAuditData(auditResults);
     console.log(`getAuditAccessibilityData: Trimmed data length=${trimmedData.length}`);
     return [trimmedData, accessibilityScore];
   } catch (err) {
     console.error(`getAuditAccessibilityData: Failed for ${urlPath}: ${err.message}`);
+    console.error(`getAuditAccessibilityData: Stack: ${err.stack}`);
     return [null, 0];
   }
 }
 
 // extract relevant data
-async function organizeData(urlPath, testing_method, user_agent, viewport) {
+async function organizeData(urlPath, testing_method, user_agent, viewport, isUsingUserAgent, isViewingAudit) {
   console.log(`organizeData: Starting for ${urlPath}`);
   try {
-    const [rawResultsData, accessibilityScore] = await getAuditAccessibilityData(urlPath, testing_method, user_agent, viewport);
+    const [rawResultsData, accessibilityScore] = await getAuditAccessibilityData(urlPath, testing_method, user_agent, viewport, isUsingUserAgent, isViewingAudit);
     if (accessibilityScore === 0) {
       console.log(`organizeData: accessibilityScore=0`);
       return { accessibilityScore: 0 };
     }
 
+    console.log(`organizeData: Processing ${rawResultsData.length} items`);
     const initialJsonReport = {};
     let itemCount = 0;
     initialJsonReport.accessibilityScore = accessibilityScore;
@@ -84,14 +87,15 @@ async function organizeData(urlPath, testing_method, user_agent, viewport) {
 }
 
 // default function that invokes all others
-export default async function createReport(urlPath, testing_method, user_agent, viewport) {
+export default async function createReport(urlPath, testing_method, user_agent, viewport, isUsingUserAgent, isViewingAudit) {
   console.log(`createReport: Starting for ${urlPath}, method: ${testing_method}, viewport: ${viewport}`);
   try {
-    const dataToWrite = await organizeData(urlPath, testing_method, user_agent, viewport);
+    const dataToWrite = await organizeData(urlPath, testing_method, user_agent, viewport, isUsingUserAgent, isViewingAudit);
     console.log(`createReport: Completed for ${urlPath}`);
     return dataToWrite;
   } catch (err) {
     console.error(`createReport: Failed for ${urlPath}: ${err.message}`);
+    console.error(`createReport: Stack: ${err.stack}`);
     return { accessibilityScore: 0 };
   }
 }

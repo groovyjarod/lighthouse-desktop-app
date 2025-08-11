@@ -27,8 +27,13 @@ const ReadyScreen = memo(
     setFullUrl,
     testingMethod,
     setTestingMethod,
+    isUsingUserAgent,
+    setIsUsingUserAgent,
+    isViewingAudit,
+    setIsViewingAudit,
     handleAudit,
     handleAllSizesAudit,
+    handleCheck
   }) => {
     return (
       <VStack {...BodyVstackCss}>
@@ -62,18 +67,73 @@ const ReadyScreen = memo(
               name="testingMethod"
               value="all"
               checked={testingMethod === "all"}
-              onChange={(e) => setTestingMethod(e.target.value)}
+              onChange={(e) => {
+                setTestingMethod(e.target.value)
+                setIsViewingAudit("no");
+              }}
             />
             <label htmlFor="all">All sizes</label>
+          </HStack>
+        </HStack>
+        <h2>Using User Agent Key?</h2>
+        <p>Use this when auditing sites that use Inverna blockers. Only use for sites you're authorized to.</p>
+        <HStack {...CenteredHstackCss}>
+          <HStack {...BodyHstackCss}>
+            <input
+              type="radio"
+              name="isUsingUserAgent"
+              value={true}
+              checked={isUsingUserAgent}
+              onChange={() => setIsUsingUserAgent(true)}
+            />
+            <label htmlFor="isUsingUserAgent">Use Key</label>
+          </HStack>
+          <HStack {...BodyHstackCss}>
+            <input
+              type="radio"
+              name="isNotUsingUserAgent"
+              value={false}
+              checked={isUsingUserAgent === false}
+              onChange={() => setIsUsingUserAgent(false)}
+            />
+            <label htmlFor="isNotUsingUserAgent">Don't Use Key</label>
+          </HStack>
+        </HStack>
+        <h2>Want To See The Audit Happen?</h2>
+        <p>Use for debugging purposes to verify that you successfully connected to the page.\n If you're conducting an all-sizes audit, you will not be able to view the page.</p>
+        <HStack {...CenteredHstackCss}>
+          <HStack {...BodyHstackCss}>
+            <input
+              disabled={testingMethod === "all"}
+              type="radio"
+              name="isViewingAudit"
+              value={true}
+              checked={isViewingAudit === "yes"}
+              onChange={() => setIsViewingAudit(testingMethod === "all" ? "no" : "yes")}
+            />
+            <label htmlFor="isViewingAudit">View Audit</label>
+          </HStack>
+          <HStack {...BodyHstackCss}>
+            <input
+              disabled={testingMethod === "all"}
+              type="radio"
+              name="isNotViewingAudit"
+              value={false}
+              checked={isViewingAudit === "no"}
+              onChange={() => setIsViewingAudit("no")}
+            />
+            <label htmlFor="isNotViewingAudit">Don't View Audit</label>
           </HStack>
         </HStack>
         <button
           className="btn btn-main"
           onClick={testingMethod === "all" ? handleAllSizesAudit : handleAudit}
+          // onClick={handleCheck}
           disabled={fullUrl.length < 8 || !testingMethod}
         >
           Start Audit
         </button>
+        <div className="page-spacer"></div>
       </VStack>
     );
   }
@@ -89,6 +149,8 @@ const AuditOne = () => {
   const [isCancelled, setIsCancelled] = useState(false);
   const [auditLogs, setAuditLogs] = useState([]);
   const [errorMessage, setErrorMessage] = useState("");
+  const [isUsingUserAgent, setIsUsingUserAgent] = useState(false);
+  const [isViewingAudit, setIsViewingAudit] = useState('yes');
   const isCancelledRef = useRef(isCancelled)
 
   useEffect(() => {
@@ -163,7 +225,8 @@ const AuditOne = () => {
           'custom-audit-results',
           isCancelledRef.current,
           setRunningStatus,
-          retryAudit
+          retryAudit,
+          isUsingUserAgent
         );
         console.log(`runAllTypesAudit result:`, result);
         if (typeof result === "string" && result.includes("Audit complete.")) {
@@ -200,18 +263,24 @@ const AuditOne = () => {
     try {
       const outputPath = `audits/custom-audit-results/${testingMethod}-${getLastPathSegment(fullUrl)}.json`;
       const processId = `${testingMethod}-${Date.now()}`;
-      console.log(`Starting audit for ${fullUrl}, method: ${testingMethod}, output: ${outputPath}`);
+      console.log(`Starting audit for ${fullUrl}, method: ${testingMethod}, output: ${outputPath}, isUsingUserAgent: ${isUsingUserAgent}, isViewingAudit: ${isViewingAudit}`);
       const result = await retryAudit(async () => {
+        console.log('AuditOne: isUsingUserAgent:', isUsingUserAgent);
+        console.log('AuditOne: isViewingAudit:', isViewingAudit);
         const result = await window.electronAPI.getSpawn(
           fullUrl,
           outputPath,
           testingMethod,
           userAgent,
           testingMethod === "desktop" ? 1920 : 500,
-          processId
+          processId,
+          isUsingUserAgent,
+          isViewingAudit
         );
         console.log(`get-spawn result:`, result);
-        if (typeof result === "string" && result.includes("Audit complete.")) {
+        console.log(typeof result)
+        const resultCheck = result.includes("Audit complete, report written successfully");
+        if (resultCheck) {
           return "Audit complete.";
         } else if (typeof result === "string" && result.includes("Audit incomplete.")) {
           throw new Error(`AuditOne handleAudit: Audit failed for ${testingMethod}: ${result}`);
@@ -236,6 +305,12 @@ const AuditOne = () => {
       }
     }
   };
+
+  const handleCheck = async () => {
+    const result = await window.electronAPI.checkNode()
+    console.log("Generating result...")
+    console.log(result)
+  }
 
   const handleRunAgain = () => {
     setTitleHeader("Audit One Webpage")
@@ -339,8 +414,13 @@ const AuditOne = () => {
           setFullUrl={setFullUrl}
           testingMethod={testingMethod}
           setTestingMethod={setTestingMethod}
+          isUsingUserAgent={isUsingUserAgent}
+          setIsUsingUserAgent={setIsUsingUserAgent}
+          isViewingAudit={isViewingAudit}
+          setIsViewingAudit={setIsViewingAudit}
           handleAudit={handleAudit}
           handleAllSizesAudit={handleAllSizesAudit}
+          handleCheck={handleCheck}
         />
       )}
       {runningStatus === "running" && <RunningScreen />}

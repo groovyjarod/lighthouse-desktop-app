@@ -27,7 +27,17 @@ const NumberInput = memo(({ inputNumber, setInputNumber, disabled }) => {
   );
 });
 
-const ReadyScreen = memo(({ inputNumber, setInputNumber, recommendedAudits, testingMethod, setTestingMethod, commenceAllAudits, wikiPaths }) => {
+const ReadyScreen = memo(({
+  inputNumber,
+  setInputNumber,
+  recommendedAudits,
+  testingMethod,
+  setTestingMethod,
+  isUsingUserAgent,
+  setIsUsingUserAgent,
+  commenceAllAudits,
+  wikiPaths
+}) => {
 
   return (
     <VStack {...BodyVstackCss}>
@@ -82,6 +92,30 @@ const ReadyScreen = memo(({ inputNumber, setInputNumber, recommendedAudits, test
           <label htmlFor="mobile">All Sizes</label>
         </HStack>
       </HStack>
+      <h2>Using User Agent Key?</h2>
+        <p>Use this when auditing sites that use Inverna blockers. Only use for sites you're authorized to.</p>
+        <HStack {...CenteredHstackCss}>
+          <HStack {...BodyHstackCss}>
+            <input
+              type="radio"
+              name="isUsingUserAgent"
+              value={true}
+              checked={isUsingUserAgent}
+              onChange={() => setIsUsingUserAgent(true)}
+            />
+            <label htmlFor="desktop">Use Key</label>
+          </HStack>
+          <HStack {...BodyHstackCss}>
+            <input
+              type="radio"
+              name="isUsingUserAgent"
+              value={false}
+              checked={isUsingUserAgent === false}
+              onChange={() => setIsUsingUserAgent(false)}
+            />
+            <label htmlFor="mobile">Don't Use Key</label>
+          </HStack>
+        </HStack>
       <button
         className="btn btn-main"
         onClick={commenceAllAudits}
@@ -100,7 +134,6 @@ const ReadyScreen = memo(({ inputNumber, setInputNumber, recommendedAudits, test
 });
 
 const AuditAll = () => {
-  const [file, setFile] = useState([]);
   const [recommendedAudits, setRecommendedAudits] = useState(0);
   const [userAgent, setUserAgent] = useState("");
   const [initialUrl, setInitialUrl] = useState("");
@@ -108,6 +141,7 @@ const AuditAll = () => {
   const [inputNumber, setInputNumber] = useState(0);
   const [testingMethod, setTestingMethod] = useState("desktop");
   const [runningStatus, setRunningStatus] = useState("ready");
+  const [isUsingUserAgent, setIsUsingUserAgent] = useState(false);
   const [activePaths, setActivePaths] = useState([]);
   const [successfulAudits, setSuccessfulAudits] = useState([]);
   const [failedAudits, setFailedAudits] = useState([]);
@@ -118,7 +152,6 @@ const AuditAll = () => {
   useEffect(() => {
     window.electronAPI.accessOsData().then(setRecommendedAudits).catch(console.error);
     window.electronAPI.getWikiPathsData().then(setWikiPaths).catch(console.error);
-    window.electronAPI.getEditableFiles().then(setFile).catch(console.error);
     window.electronAPI.getFile('./settings/secretUserAgent.txt').then(setUserAgent).catch(console.error);
     window.electronAPI.getFile('./settings/initialUrl.txt').then(setInitialUrl).catch(console.error);
   }, []);
@@ -193,7 +226,8 @@ const AuditAll = () => {
             'audit-results',
             isCancelledRef.current,
             setRunningStatus,
-            retryAudit
+            retryAudit,
+            isUsingUserAgent
           )
           console.log(result)
           setSuccessfulAudits((prev) => [...prev, fullUrl])
@@ -223,6 +257,7 @@ const AuditAll = () => {
       const outputType = testingMethod === "desktop" ? "desk" : "mobile";
       const outputPath = `./audits/audit-results/${index + 1}-${outputType}-${wikiPath}.json`;
       const processId = `audit-${Date.now()}-${index}`
+      const isViewingAudit = "no";
       return numberOfConcurrentAudits(() =>
         retryAudit(async () => {
           if (isCancelledRef.current) {
@@ -238,9 +273,11 @@ const AuditAll = () => {
               testingMethod,
               userAgent,
               testingMethod === 'desktop' ? 1920 : 500,
-              processId
+              processId,
+              isUsingUserAgent,
+              isViewingAudit
             );
-            result === "Audit complete." ? setSuccessfulAudits((prev) => [...prev, fullUrl]) : setFailedAudits((prev) => [...prev, fullUrl]);
+            result.includes("Audit complete.") ? setSuccessfulAudits((prev) => [...prev, fullUrl]) : setFailedAudits((prev) => [...prev, fullUrl]);
           } catch (err) {
             if (err.message === "Audit cancelled by user.") {
               console.log('Cancellation caught in commenceAllAudits.')
@@ -347,6 +384,8 @@ const AuditAll = () => {
           recommendedAudits={recommendedAudits}
           testingMethod={testingMethod}
           setTestingMethod={setTestingMethod}
+          isUsingUserAgent={isUsingUserAgent}
+          setIsUsingUserAgent={setIsUsingUserAgent}
           commenceAllAudits={testingMethod === 'all' ? commenceEachAllTypeAudit : commenceAllAudits}
           wikiPaths={wikiPaths}
         />
