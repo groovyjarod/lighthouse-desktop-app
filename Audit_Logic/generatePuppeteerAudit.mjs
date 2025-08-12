@@ -15,7 +15,7 @@ export default async function generatePuppeteerAudit(
   const OUTPUT_FORMAT = "json";
   const TESTING_METHOD = testing_method;
   const isMobile = TESTING_METHOD === "mobile";
-  const USER_AGENT = user_agent;
+  const USER_AGENT = isUsingUserAgent === "yes" ? user_agent : "The user has indicated they do not want to use a User Agent Key for this run.";
   const LOADING_TIME = 7000;
   const LIGHTHOUSE_TIMEOUT = 20000;
   const viewport = { width: parseInt(viewportWidth), height: 800 }
@@ -33,14 +33,11 @@ export default async function generatePuppeteerAudit(
     "--no-sandbox",
     "--disable-setuid-sandbox",
     `--remote-debugging-port=${EXPLICIT_PORT}`,
-    '--remote-allow-origins=*'
+    '--remote-allow-origins=*',
+    `--user-agent=${USER_AGENT}`
   ]
-  if (isUsingUserAgent) {
-    puppeteerArgs.push(`--user-agent=${USER_AGENT}`)
-  }
 
   let browser
-  console.log(`One more time: isViewingAudit is set to ${isViewingAudit}`)
   const puppeteerHeadlessConfig = {
     executablePath: process.env.PUPPETEER_EXECUTABLE_PATH,
     headless: true,
@@ -51,9 +48,11 @@ export default async function generatePuppeteerAudit(
     headless: false,
     args: puppeteerArgs,
   }
+
+  console.log('User Agent:', USER_AGENT);
+
   try {
       const useConfig = isViewingAudit == "no" ? puppeteerHeadlessConfig : puppeteerConfig;
-      console.log(`Launching Puppeteer browser...`, useConfig)
       browser = await puppeteer.launch(useConfig);
 
     const page = await browser.newPage();
@@ -61,7 +60,6 @@ export default async function generatePuppeteerAudit(
     page.on('pageerror', (err) => console.error('Chrome Page Error:', err.message));
     page.on('requestfailed', (req) => console.error('Chrome Request Failed:', req.url(), req.failure().errorText));
 
-    console.log('Fetching IP...');
     const ip = await page.evaluate(async () => {
       const res = await fetch('https://api.ipify.org?format=json');
       const data = await res.json();
@@ -69,11 +67,8 @@ export default async function generatePuppeteerAudit(
     });
     console.log('Fetched IP:', ip);
 
-    console.log('Setting viewport...')
     await page.setViewport({ ...viewport, deviceScaleFactor: 1 });
-    console.log('Navigating to URL:', puppeteerUrl)
     await page.goto(puppeteerUrl, { waitUntil: "networkidle2", timeout: LOADING_TIME });
-    console.log('Scrolling to bottom...')
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight)); // scroll to bottom for lazy loads
     await new Promise((r) => setTimeout(r, 1000));
 
@@ -115,7 +110,7 @@ export default async function generatePuppeteerAudit(
         onlyCategories: ["accessibility"],
         pauseAfterFcpMs: 3000,
         maxWaitForLoad: LOADING_TIME,
-        emulatedUserAgent: isUsingUserAgent ? USER_AGENT : '',
+        emulatedUserAgent: isUsingUserAgent === "yes" ? USER_AGENT : '',
       },
     };
 
