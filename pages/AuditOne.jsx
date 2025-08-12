@@ -10,9 +10,9 @@ import pLimit from "p-limit";
 import getLastPathSegment from "../reusables/getLastPathSegment";
 import runAllTypesAudit from "../reusables/RunAllTypesAudit";
 
-const UrlInput = memo(({ fullUrl, setFullUrl }) => (
+const UrlInput = memo(({ fullUrl, setFullUrl, className }) => (
   <Input
-    className="input"
+    className={className}
     type="text"
     name="audit-link"
     value={fullUrl}
@@ -38,7 +38,7 @@ const ReadyScreen = memo(
     return (
       <VStack {...BodyVstackCss}>
         <h2>Paste Webpage Link Here</h2>
-        <UrlInput fullUrl={fullUrl} setFullUrl={setFullUrl} />
+        <UrlInput fullUrl={fullUrl} setFullUrl={setFullUrl} className="input input-main" />
         <h2>Choose Testing Method</h2>
         <HStack {...CenteredHstackCss}>
           <HStack {...BodyHstackCss}>
@@ -82,9 +82,9 @@ const ReadyScreen = memo(
             <input
               type="radio"
               name="isUsingUserAgent"
-              value={true}
-              checked={isUsingUserAgent}
-              onChange={() => setIsUsingUserAgent(true)}
+              value="yes"
+              checked={isUsingUserAgent === "yes"}
+              onChange={() => setIsUsingUserAgent("yes")}
             />
             <label htmlFor="isUsingUserAgent">Use Key</label>
           </HStack>
@@ -92,9 +92,9 @@ const ReadyScreen = memo(
             <input
               type="radio"
               name="isNotUsingUserAgent"
-              value={false}
-              checked={isUsingUserAgent === false}
-              onChange={() => setIsUsingUserAgent(false)}
+              value="no"
+              checked={isUsingUserAgent === "no"}
+              onChange={() => setIsUsingUserAgent("no")}
             />
             <label htmlFor="isNotUsingUserAgent">Don't Use Key</label>
           </HStack>
@@ -107,7 +107,7 @@ const ReadyScreen = memo(
               disabled={testingMethod === "all"}
               type="radio"
               name="isViewingAudit"
-              value={true}
+              value="yes"
               checked={isViewingAudit === "yes"}
               onChange={() => setIsViewingAudit(testingMethod === "all" ? "no" : "yes")}
             />
@@ -149,7 +149,7 @@ const AuditOne = () => {
   const [isCancelled, setIsCancelled] = useState(false);
   const [auditLogs, setAuditLogs] = useState([]);
   const [errorMessage, setErrorMessage] = useState("");
-  const [isUsingUserAgent, setIsUsingUserAgent] = useState(false);
+  const [isUsingUserAgent, setIsUsingUserAgent] = useState("yes");
   const [isViewingAudit, setIsViewingAudit] = useState('yes');
   const isCancelledRef = useRef(isCancelled)
 
@@ -384,11 +384,10 @@ const AuditOne = () => {
   const ErrorScreen = () => (
     <VStack {...BodyVstackCss}>
       <h3>Audit failed for {fullUrl}.</h3>
-      <h4>{errorMessage}</h4>
-      <h4>
-        Please check for any typos in the URL, check your connection, and try
-        again.
-      </h4>
+      <h4>{errorMessage.includes("The user has indicated they do not want to use a User Agent Key for this run.")
+        ? "Warning: The website you are trying to audit requires a User Agent Key. Please try again with User Agent Key set to 'Use Key', and make sure that your user agent key value matches the value given to you."
+        : errorMessage
+      }</h4>
       <button className="btn btn-main" onClick={handleRunAgain}>
         Run Another Audit
       </button>

@@ -99,9 +99,9 @@ const ReadyScreen = memo(({
             <input
               type="radio"
               name="isUsingUserAgent"
-              value={true}
-              checked={isUsingUserAgent}
-              onChange={() => setIsUsingUserAgent(true)}
+              value="yes"
+              checked={isUsingUserAgent === "yes"}
+              onChange={() => setIsUsingUserAgent("yes")}
             />
             <label htmlFor="desktop">Use Key</label>
           </HStack>
@@ -109,9 +109,9 @@ const ReadyScreen = memo(({
             <input
               type="radio"
               name="isUsingUserAgent"
-              value={false}
-              checked={isUsingUserAgent === false}
-              onChange={() => setIsUsingUserAgent(false)}
+              value="no"
+              checked={isUsingUserAgent === "no"}
+              onChange={() => setIsUsingUserAgent("no")}
             />
             <label htmlFor="mobile">Don't Use Key</label>
           </HStack>
@@ -141,7 +141,7 @@ const AuditAll = () => {
   const [inputNumber, setInputNumber] = useState(0);
   const [testingMethod, setTestingMethod] = useState("desktop");
   const [runningStatus, setRunningStatus] = useState("ready");
-  const [isUsingUserAgent, setIsUsingUserAgent] = useState(false);
+  const [isUsingUserAgent, setIsUsingUserAgent] = useState("yes");
   const [activePaths, setActivePaths] = useState([]);
   const [successfulAudits, setSuccessfulAudits] = useState([]);
   const [failedAudits, setFailedAudits] = useState([]);
