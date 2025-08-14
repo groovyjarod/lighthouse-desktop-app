@@ -90,8 +90,7 @@ const createWindow = async () => {
     } else {
       win.loadFile(path.join(__dirname, "build", "index.html"))
     }
-    console.log('Window loaded.')
-    console.log(isDev)
+    console.log('Window successfully loaded.')
     win.on("closed", () => win.destroy());
 
   } catch (err) {
@@ -347,8 +346,8 @@ ipcMain.handle("get-spawn", async (event, urlPath, outputPath, testing_method, u
       ? path.join(__dirname, "runAndWriteAudit.mjs")
       : path.join(process.resourcesPath, "runAndWriteAudit.mjs")
 
-    console.log(`Resolved script path: ${scriptPath}`)
-    console.log(`main.js get-spawn: All args: ${urlPath}, ${outputPath}, ${testing_method}, ${user_agent}, ${viewport}, ${isUsingUserAgent}, ${isViewingAudit}`)
+      console.log(`Commecting test for ${urlPath}...`)
+    // console.log(`Commencing test for: ${urlPath},\n saving to ${outputPath},\n conducting a ${testing_method} type audit,\n Using the user agent: ${user_agent}.\n Viewport: ${viewport},\n Using the user agent? ${isUsingUserAgent},\n Viewing the audit? ${isViewingAudit}\n\n`)
 
     const spawnPromise = new Promise((resolve, reject) => {
       const child = child_process.spawn(

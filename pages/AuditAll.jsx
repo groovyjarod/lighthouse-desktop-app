@@ -277,7 +277,14 @@ const AuditAll = () => {
               isUsingUserAgent,
               isViewingAudit
             );
-            result.includes("Audit complete.") ? setSuccessfulAudits((prev) => [...prev, fullUrl]) : setFailedAudits((prev) => [...prev, fullUrl]);
+            console.log(result)
+            if (typeof result === "string" && result.includes("Audit complete, report written successfully")) {
+              setSuccessfulAudits((prev) => [...prev, fullUrl])
+            } else if (typeof result === "string" && result.includes("Audit incomplete")) {
+              setFailedAudits((prev) => [...prev, fullUrl]);
+            } else if (typeof result === "object" && Object.values(result).every(r => r.accessibilityScore > 0)) {
+              setSuccessfulAudits((prev) => [...prev, fullUrl])
+            }
           } catch (err) {
             if (err.message === "Audit cancelled by user.") {
               console.log('Cancellation caught in commenceAllAudits.')
@@ -299,6 +306,12 @@ const AuditAll = () => {
       setRunningStatus("finished");
     }
   };
+
+  const handleReset = () => {
+    setSuccessfulAudits([])
+    setFailedAudits([])
+    setRunningStatus("ready")
+  }
 
   const RunningScreen = () => (
     <VStack {...BodyVstackCss}>
@@ -331,7 +344,7 @@ const AuditAll = () => {
           <p>{audit}</p>
         </VStack>
       ))}
-      <button className="btn btn-main" onClick={() => setRunningStatus("ready")}>
+      <button className="btn btn-main" onClick={() => handleReset()}>
         Run Again
       </button>
       <LinkButton
@@ -361,7 +374,7 @@ const AuditAll = () => {
     <VStack {...BodyVstackCss}>
       <h3>Audits cancelled.</h3>
       <h4>{errorMessage}</h4>
-      <button className="btn btn-main" onClick={() => setRunningStatus("ready")}>Run Again</button>
+      <button className="btn btn-main" onClick={() => handleReset()}>Run Again</button>
     </VStack>
   )
 
