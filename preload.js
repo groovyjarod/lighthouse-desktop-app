@@ -1,6 +1,6 @@
 const { contextBridge, ipcRenderer } = require("electron");
 
-console.log("Preload script commencing to ensure that the app loads...");
+console.log("Preload script commencing...");
 
 contextBridge.exposeInMainWorld("electronAPI", {
   accessOsData: () => ipcRenderer.invoke("access-os-data"),
