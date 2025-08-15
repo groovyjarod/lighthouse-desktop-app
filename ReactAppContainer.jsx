@@ -1,6 +1,6 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { HashRouter, Route, Routes } from "react-router-dom";
 import "./src/styles.css";
 import Home from "./pages/Home";
 import AuditMenu from "./pages/AuditMenu";
@@ -17,7 +17,7 @@ import SettingsMenu from "./pages/SettingsMenu";
 
 const App = () => {
   return (
-    <BrowserRouter>
+    <HashRouter>
       <Routes>
         <Route index path="/" element={<Home />} />
         <Route path="test-menu">
@@ -34,7 +34,7 @@ const App = () => {
         </Route>
         <Route path="files-menu" element={<SettingsMenu />} />
       </Routes>
-    </BrowserRouter>
+    </HashRouter>
   );
 };
 

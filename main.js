@@ -338,7 +338,7 @@ ipcMain.handle("access-os-data", async () => {
 });
 
 ipcMain.handle("get-spawn", async (event, urlPath, outputPath, testing_method, user_agent, viewport, processId, isUsingUserAgent, isViewingAudit) => {
-    const TIMEOUT_ALL_TESTS = 60000;
+    const TIMEOUT_ALL_TESTS = 70000;
     const TIMEOUT_SINGULAR_TEST = 45000;
     let timeoutId;
 
@@ -346,7 +346,7 @@ ipcMain.handle("get-spawn", async (event, urlPath, outputPath, testing_method, u
       ? path.join(__dirname, "runAndWriteAudit.mjs")
       : path.join(process.resourcesPath, "runAndWriteAudit.mjs")
 
-      console.log(`Commecting test for ${urlPath}...`)
+      console.log(`Commencing test for ${urlPath}...`)
     // console.log(`Commencing test for: ${urlPath},\n saving to ${outputPath},\n conducting a ${testing_method} type audit,\n Using the user agent: ${user_agent}.\n Viewport: ${viewport},\n Using the user agent? ${isUsingUserAgent},\n Viewing the audit? ${isViewingAudit}\n\n`)
 
     const spawnPromise = new Promise((resolve, reject) => {
@@ -364,7 +364,7 @@ ipcMain.handle("get-spawn", async (event, urlPath, outputPath, testing_method, u
         ],
         {
           stdio: ["ignore", "pipe", "pipe"],
-          cwd: isDev ? process.cwd() : process.resourcesPath
+          cwd: isDev ? process.cwd() : path.join(process.resourcesPath)
         },
       );
 

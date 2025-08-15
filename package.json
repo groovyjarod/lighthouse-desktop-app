@@ -38,6 +38,7 @@
     "intl-messageformat": "^10.7.16",
     "js-yaml": "^4.1.0",
     "legacy-javascript": "^0.0.1",
+    "lighthouse": "^12.8.1",
     "lighthouse-logger": "^2.0.2",
     "lighthouse-stack-packs": "^1.12.2",
     "lodash-es": "^4.17.21",
@@ -78,7 +79,6 @@
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^16.2.0",
-    "lighthouse": "^12.6.0",
     "typescript": "~5.8.3",
     "typescript-eslint": "^8.34.1",
     "vite": "^7.0.0"
@@ -105,10 +105,10 @@
     "asarUnpack": [
       "**/node_modules/lighthouse/**",
       "**/node_modules/lighthouse-logger/**",
-      "**/node_modules/intl-messageformat/**",
-      "**/node_modules/cosmiconfig/**",
       "**/node_modules/puppeteer/**",
       "**/node_modules/puppeteer-core/**",
+      "**/node_modules/intl-messageformat/**",
+      "**/node_modules/cosmiconfig/**",
       "**/node_modules/lodash-es/**",
       "**/node_modules/debug/**",
       "**/node_modules/marky/**",
@@ -122,7 +122,6 @@
       "**/node_modules/onetime/**",
       "**/node_modules/resolve/**",
       "**/node_modules/event-target-shim/**",
-      "**/node_modules/intl-messageformat/**",
       "**/node_modules/lighthouse-stack-packs/**",
       "**/node_modules/tldts-icann/**",
       "**/node_modules/lookup-closest-locale/**",
@@ -131,7 +130,6 @@
       "**/node_modules/@puppeteer/browsers/**",
       "**/node_modules/ws/**",
       "**/node_modules/progress/**",
-      "**/node_modules/proxy-agent/**",
       "**/node_modules/semver/**",
       "**/node_modules/legacy-javascript/**",
       "**/node_modules/agent-base/**",
@@ -142,13 +140,7 @@
       "**/node_modules/@formatjs/fast-memoize/**",
       "**/node_modules/@formatjs/icu-messageformat-parser/**",
       "**/node_modules/@formatjs/icu-skeleton-parser/**",
-      "**/node_modules/tldts-core/**",
-      "bin/**",
-      "Audit_Logic/**",
-      "audits/**",
-      "settings/**",
-      "reusables/**",
-      "runAndWriteAudit.mjs"
+      "**/node_modules/tldts-core/**"
     ],
     "extraResources": [
       {
@@ -174,158 +166,6 @@
       {
         "from": "chrome-browser/",
         "to": "app.asar.unpacked/chrome-browser"
-      },
-      {
-        "from": "node_modules/lighthouse",
-        "to": "node_modules/lighthouse"
-      },
-      {
-        "from": "node_modules/puppeteer/",
-        "to": "node_modules/puppeteer/"
-      },
-      {
-        "from": "node_modules/puppeteer-core/",
-        "to": "node_modules/puppeteer-core/"
-      },
-      {
-        "from": "node_modules/cosmiconfig/",
-        "to": "node_modules/cosmiconfig"
-      },
-      {
-        "from": "node_modules/lighthouse-logger/",
-        "to": "node_modules/lighthouse-logger/"
-      },
-      {
-        "from": "node_modules/lodash-es/",
-        "to": "node_modules/lodash-es/"
-      },
-      {
-        "from": "node_modules/debug/",
-        "to": "node_modules/debug/"
-      },
-      {
-        "from": "node_modules/marky/",
-        "to": "node_modules/marky/"
-      },
-      {
-        "from": "node_modules/js-yaml/",
-        "to": "node_modules/js-yaml/"
-      },
-      {
-        "from": "node_modules/minimist/",
-        "to": "node_modules/minimist/"
-      },
-      {
-        "from": "node_modules/glob/",
-        "to": "node_modules/glob/"
-      },
-      {
-        "from": "node_modules/chalk/",
-        "to": "node_modules/chalk/"
-      },
-      {
-        "from": "node_modules/object-inspect/",
-        "to": "node_modules/object-inspect/"
-      },
-      {
-        "from": "node_modules/onetime/",
-        "to": "node_modules/onetime/"
-      },
-      {
-        "from": "node_modules/resolve/",
-        "to": "node_modules/resolve/"
-      },
-      {
-        "from": "node_modules/event-target-shim/",
-        "to": "node_modules/event-target-shim/"
-      },
-      {
-        "from": "node_modules/intl-messageformat/",
-        "to": "node_modules/intl-messageformat/"
-      },
-      {
-        "from": "node_modules/lighthouse-stack-packs/",
-        "to": "node_modules/lighthouse-stack-packs/"
-      },
-      {
-        "from": "node_modules/tldts-icann/",
-        "to": "node_modules/tldts-icann/"
-      },
-      {
-        "from": "node_modules/tldts-core",
-        "to": "node_modules/tldts-core"
-      },
-      {
-        "from": "node_modules/lookup-closest-locale/",
-        "to": "node_modules/lookup-closest-locale/"
-      },
-      {
-        "from": "node_modules/@paulirish/trace_engine/",
-        "to": "node_modules/@paulirish/trace_engine/"
-      },
-      {
-        "from": "node_modules/third-party-web/",
-        "to": "node_modules/third-party-web/"
-      },
-      {
-        "from": "node_modules/@puppeteer/browsers/",
-        "to": "node_modules/@puppeteer/browsers/"
-      },
-      {
-        "from": "node_modules/ws/",
-        "to": "node_modules/ws/"
-      },
-      {
-        "from": "node_modules/progress/",
-        "to": "node_modules/progress/"
-      },
-      {
-        "from": "node_modules/proxy-agent/",
-        "to": "node_modules/proxy-agent/"
-      },
-      {
-        "from": "node_modules/semver/",
-        "to": "node_modules/semver/"
-      },
-      {
-        "from": "node_modules/legacy-javascript/",
-        "to": "node_modules/legacy-javascript/"
-      },
-      {
-        "from": "node_modules/lru-cache/",
-        "to": "node_modules/lru-cache/"
-      },
-      {
-        "from": "node_modules/agent-base/",
-        "to": "node_modules/agent-base/"
-      },
-      {
-        "from": "node_modules/ms",
-        "to": "node_modules/ms"
-      },
-      {
-        "from": "node_modules/proxy-from-env/",
-        "to": "node_modules/proxy-from-env/"
-      },
-      {
-        "from": "node_modules/env-paths/",
-        "to": "node_modules/env-paths/"
-      },
-      {
-        "from": "node_modules/tslib/",
-        "to": "node_modules/tslib/"
-      },
-      {
-        "from": "node_modules/@formatjs/fast-memoize/",
-        "to": "node_modules/@formatjs/fast-memoize/"
-      },
-      {
-        "from": "node_modules/@formatjs/icu-messageformat-parser/",
-        "to": "node_modules/@formatjs/icu-messageformat-parser/"
-      },
-      {
-        "from": "node_modules/@formatjs/icu-skeleton-parser/",
-        "to": "node_modules/@formatjs/icu-skeleton-parser/"
       }
     ],
     "directories": {
