@@ -11,7 +11,6 @@ export default async function generatePuppeteerAudit(
   isViewingAudit
 ) {
   console.log(`Using PUPPETEER_EXECUTABLE_PATH: ${process.env.PUPPETEER_EXECUTABLE_PATH}`);
-  console.log(`Am I viewing this audit??? ${isViewingAudit}`);
   const OUTPUT_FORMAT = "json";
   const TESTING_METHOD = testing_method;
   const isMobile = TESTING_METHOD === "mobile";
@@ -49,8 +48,6 @@ export default async function generatePuppeteerAudit(
     args: puppeteerArgs,
   }
 
-  console.log('User Agent:', USER_AGENT);
-
   try {
       const useConfig = isViewingAudit == "no" ? puppeteerHeadlessConfig : puppeteerConfig;
       browser = await puppeteer.launch(useConfig);
@@ -65,7 +62,6 @@ export default async function generatePuppeteerAudit(
       const data = await res.json();
       return data.ip;
     });
-    console.log('Fetched IP:', ip);
 
     await page.setViewport({ ...viewport, deviceScaleFactor: 1 });
     await page.goto(puppeteerUrl, { waitUntil: "networkidle2", timeout: LOADING_TIME });
@@ -73,7 +69,6 @@ export default async function generatePuppeteerAudit(
     await new Promise((r) => setTimeout(r, 1000));
 
     const wsEndpoint = browser.wsEndpoint();
-    console.log('WebSocket Endpoint:', wsEndpoint)
     const endpointURL = new URL(wsEndpoint);
     console.log('Parsed Endpoint Port:', endpointURL.port)
     console.log('Verifying WebSocket connection...')

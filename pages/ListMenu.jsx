@@ -8,7 +8,7 @@ import LinkButton from '../reusables/LinkButton'
 const ListMenu = () => {
   return (
     <VStack {...CenteredVstackCss}>
-        <MenuHeader title="View Lists" subTitle="Created by Jarod Day" />
+        <MenuHeader title="View Lists" subTitle="Created for FamilySearch" />
         <div className="page-spacer"></div>
         <h2>List Options</h2>
         <HStack {...CenteredHstackCss}>

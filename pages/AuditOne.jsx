@@ -329,7 +329,7 @@ const AuditOne = () => {
       <p>
         {testingMethod !== "all"
           ? "Tests usually take about 10-15 seconds to complete, depending on connection speed."
-          : "Currently conducting 4 simultaneous tests with a width of 500, 900, 1280, and 1920. This test will likely take a minute to complete and can fail to initially connect."}
+          : "Currently conducting 4 simultaneous tests with a width of 500, 900, 1280, and 1920. This test will take at least a minute to complete and may fail to initially connect."}
       </p>
       <p>
         {testingMethod !== "all" &&
@@ -391,6 +391,7 @@ const AuditOne = () => {
       <button className="btn btn-main" onClick={handleRunAgain}>
         Run Another Audit
       </button>
+      <div className="page-spacer"></div>
     </VStack>
   );
 

@@ -1,4 +1,8 @@
 // import pLimit from 'p-limit';
+// TODO: put a function of retryAudit in here. Compare/contrast how it works
+// in AuditAll.jsx to find out why they aren't repeating everything when one
+// thing fails, because that's what's happening here - one of the four audits
+// will work, but then everything will rerun.
 
 const runAllTypesAudit = async (
   fullUrl,
