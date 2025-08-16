@@ -226,7 +226,6 @@ const AuditAll = () => {
             'audit-results',
             isCancelledRef.current,
             setRunningStatus,
-            retryAudit,
             isUsingUserAgent
           )
           console.log(result)
@@ -262,7 +261,7 @@ const AuditAll = () => {
         retryAudit(async () => {
           if (isCancelledRef.current) {
             console.log('In commenceAllAudits: isCancelled check worked.')
-            throw new Error("Audit Cancelled by user.")
+            throw new Error("Audit cancelled by user.")
           }
           try {
             setIsCancelled(false)
@@ -284,6 +283,8 @@ const AuditAll = () => {
               setFailedAudits((prev) => [...prev, fullUrl]);
             } else if (typeof result === "object" && Object.values(result).every(r => r.accessibilityScore > 0)) {
               setSuccessfulAudits((prev) => [...prev, fullUrl])
+            } else {
+              setFailedAudits((prev) => [...prev, fullUrl]);
             }
           } catch (err) {
             if (err.message === "Audit cancelled by user.") {

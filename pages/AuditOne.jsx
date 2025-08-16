@@ -203,7 +203,7 @@ const AuditOne = () => {
       await window.electronAPI.cancelAudit()
       setRunningStatus("cancelled")
       setTitleHeader("Audit Cancelled")
-      setErrorMessage("Audit was cancelleed by the user.")
+      setErrorMessage("Audit was cancelled by the user.")
     } catch (err) {
       console.error("Cancel audit failed:", err)
     }
@@ -225,7 +225,6 @@ const AuditOne = () => {
           'custom-audit-results',
           isCancelledRef.current,
           setRunningStatus,
-          retryAudit,
           isUsingUserAgent
         );
         console.log(`runAllTypesAudit result:`, result);
