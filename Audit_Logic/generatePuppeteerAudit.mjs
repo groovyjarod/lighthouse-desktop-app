@@ -12,10 +12,10 @@ export default async function generatePuppeteerAudit(
 ) {
   console.log(`Using PUPPETEER_EXECUTABLE_PATH: ${process.env.PUPPETEER_EXECUTABLE_PATH}`);
   const OUTPUT_FORMAT = "json";
-  const TESTING_METHOD = testing_method;
+  const TESTING_METHOD = testing_method === "all" ? "desktop" : testing_method;
   const isMobile = TESTING_METHOD === "mobile";
   const USER_AGENT = isUsingUserAgent === "yes" ? user_agent : "The user has indicated they do not want to use a User Agent Key for this run.";
-  const LOADING_TIME = 7000;
+  const LOADING_TIME = 10000;
   const LIGHTHOUSE_TIMEOUT = 20000;
   const viewport = { width: parseInt(viewportWidth), height: 800 }
   const EXPLICIT_PORT = 9222
@@ -33,8 +33,9 @@ export default async function generatePuppeteerAudit(
     "--disable-setuid-sandbox",
     `--remote-debugging-port=${EXPLICIT_PORT}`,
     '--remote-allow-origins=*',
-    `--user-agent=${USER_AGENT}`
   ]
+
+  if (isUsingUserAgent) puppeteerArgs.push(`--user-agent=${USER_AGENT}`)
 
   let browser
   const puppeteerHeadlessConfig = {
@@ -91,7 +92,7 @@ export default async function generatePuppeteerAudit(
       onlyCategories: ["accessibility"]
     };
 
-    const config = {
+    const configWithUserAgent = {
       extends: "lighthouse:default",
       settings: {
         formFactor: TESTING_METHOD,
@@ -105,11 +106,31 @@ export default async function generatePuppeteerAudit(
         onlyCategories: ["accessibility"],
         pauseAfterFcpMs: 3000,
         maxWaitForLoad: LOADING_TIME,
-        emulatedUserAgent: isUsingUserAgent === "yes" ? USER_AGENT : '',
+        emulatedUserAgent: USER_AGENT,
       },
     };
 
+    const configWithoutUserAgent = {
+      extends: "lighthouse:default",
+      settings: {
+        formFactor: TESTING_METHOD,
+        screenEmulation: {
+          mobile: isMobile,
+          width: viewport.width,
+          height: viewport.height,
+          deviceScaleFactor: 1,
+          disabled: false,
+        },
+        onlyCategories: ["accessibility"],
+        pauseAfterFcpMs: 3000,
+        maxWaitForLoad: LOADING_TIME,
+      },
+    };
+
+    const config = isUsingUserAgent ? configWithUserAgent : configWithoutUserAgent
+
     try {
+      console.log(`LIGHTHOUSE TESTING METHOD: ${testing_method}`)
       console.log('Starting Lighthouse audit...')
       // const runResult = await Promise.race([
       //   lighthouse(puppeteerUrl, options, config),

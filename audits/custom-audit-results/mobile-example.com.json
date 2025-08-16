@@ -10,11 +10,11 @@
         "explanation": "Fix any of the following:\n  The <html> element does not have a lang attribute",
         "boundingRect": {
           "top": 0,
-          "bottom": 249,
+          "bottom": 253,
           "left": 0,
           "right": 500,
           "width": 500,
-          "height": 249
+          "height": 253
         },
         "itemCategory": "unknown"
       }
