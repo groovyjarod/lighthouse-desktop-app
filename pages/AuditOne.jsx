@@ -128,6 +128,7 @@ const ReadyScreen = memo(
         <button
           className="btn btn-main"
           onClick={testingMethod === "all" ? handleAllSizesAudit : handleAudit}
+          // onClick={LighthouseTest}
           // onClick={handleCheck}
           disabled={fullUrl.length < 8 || !testingMethod}
         >

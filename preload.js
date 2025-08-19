@@ -51,4 +51,3 @@ contextBridge.exposeInMainWorld("electronAPI", {
 });
 
 console.log("preload script loaded.");
-console.log(`${process.resourcesPath}`)

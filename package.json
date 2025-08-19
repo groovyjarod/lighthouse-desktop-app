@@ -166,6 +166,10 @@
       {
         "from": "chrome-browser/",
         "to": "app.asar.unpacked/chrome-browser"
+      },
+      {
+        "from": "node_modules/puppeteer/",
+        "to": "node_modules/puppeteer/"
       }
     ],
     "directories": {
