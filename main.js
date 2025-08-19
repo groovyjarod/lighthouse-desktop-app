@@ -9,6 +9,8 @@ const pLimit = require("p-limit");
 const pLimitDefault = require("p-limit").default;
 require("@electron/remote/main").initialize();
 
+// ------------ Setup Code ------------
+
 let nodeBinary
 let chromiumPath;
 const isPackaged = app.isPackaged;
@@ -44,9 +46,6 @@ if (isPackaged) {
 }
 
 console.log(`Setting PUPPETEER_EXECUTABLE_PATH to ${chromiumPath}`);
-// fs.accessSync(chromiumPath)
-//   .then(() => console.log('Chromium path exists'))
-//   .catch(err => console.error('Chromium path error:', err.message));
 
 process.env.PUPPETEER_EXECUTABLE_PATH = chromiumPath
 
