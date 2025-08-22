@@ -167,9 +167,8 @@ const AuditAll = () => {
     for (let i = 0; i < retries; i++) {
       if (isCancelledRef.current) throw new Error("Audit cancelled by user.");
       try {
-        const result = await fn();
-        if (isCancelledRef.current) throw new Error("Audit cancelled by user.");
         setRunningStatus("running")
+        const result = await fn();
         return result;
       } catch (err) {
         if (isCancelledRef.current) throw new Error("Audit cancelled by user.");
@@ -254,7 +253,8 @@ const AuditAll = () => {
     const tasks = wikiPaths.map((wikiPath, index) => {
       const fullUrl = `${initialUrl}${wikiPath}`;
       const outputType = testingMethod === "desktop" ? "desk" : "mobile";
-      const outputPath = `./audits/audit-results/${index + 1}-${outputType}-${wikiPath}.json`;
+      const outputDirPath = 'audit-results'
+      const outputFilePath = `${index + 1}-${outputType}-${wikiPath}.json`;
       const processId = `audit-${Date.now()}-${index}`
       const isViewingAudit = "no";
       return numberOfConcurrentAudits(() =>
@@ -263,12 +263,13 @@ const AuditAll = () => {
             console.log('In commenceAllAudits: isCancelled check worked.')
             throw new Error("Audit cancelled by user.")
           }
+          setIsCancelled(false)
           try {
-            setIsCancelled(false)
             addItem(fullUrl);
             const result = await window.electronAPI.getSpawn(
               fullUrl,
-              outputPath,
+              outputDirPath,
+              outputFilePath,
               testingMethod,
               userAgent,
               testingMethod === 'desktop' ? 1920 : 500,
@@ -328,6 +329,7 @@ const AuditAll = () => {
         </VStack>
       ))}
       <button className="btn btn-main" onClick={handleCancelAudit}>Cancel Audits</button>
+      <div className="page-spacer"></div>
     </VStack>
   );
 

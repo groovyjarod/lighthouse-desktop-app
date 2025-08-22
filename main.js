@@ -21,28 +21,28 @@ if (isPackaged) {
   if (platform === "darwin") {
     chromiumPath = path.join(
       process.resourcesPath,
-      'app.asar.unpacked/chrome-browser',
+      'chrome-browser',
       'Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing'
     );
     nodeBinary = path.join(process.resourcesPath, "node")
   } else if (platform === "win32") {
     chromiumPath = path.join(
       process.resourcesPath,
-      'app.asar.unpacked/chrome-browser',
-      'chrome-win/chrome.exe'
+      'chrome-browser',
+      'chrome.exe'
     );
     nodeBinary = path.join(process.resourcesPath, "node.exe")
   } else {
-    throw new Error(`Unsupported platform: ${platform}`);
+    chromiumPath = path.join(
+      process.resourcesPath,
+      'chrome-browser',
+      'chrome-linux/chrome'
+    )
+    nodeBinary = path.join(process.resourcesPath, 'node')
   }
 } else {
   chromiumPath = puppeteer.executablePath();
   nodeBinary = "node"
-  // chromiumPath = path.join(
-  //   __dirname,
-  //   'chrome-browser',
-  //   'Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing'
-  // )
 }
 
 console.log(`Setting PUPPETEER_EXECUTABLE_PATH to ${chromiumPath}`);
@@ -53,6 +53,18 @@ process.env.PUPPETEER_EXECUTABLE_PATH = chromiumPath
 
 const activeProcesses = new Map();
 const createWindow = async () => {
+  const allFolderPaths = ['all-audit-sizes', 'audit-results', 'old-audit-results', 'custom-audit-results']
+  try {
+    const auditsPath = path.join(app.getPath('documents'), 'audits')
+    await fsPromise.mkdir(auditsPath, { recursive: true })
+    for (let folderPath of allFolderPaths) {
+      const newAuditPath = path.join(auditsPath, folderPath)
+      await fsPromise.mkdir(newAuditPath, { recursive: true })
+    }
+  } catch (err) {
+    console.error('Error in creating folder paths in documents:', err)
+    throw err
+  }
   try {
     const preloadPath = path.join(__dirname, "preload.js");
     console.log('Preload path:', preloadPath);
@@ -170,10 +182,17 @@ ipcMain.handle("get-file", async (event, filePath) => {
   return await fsPromise.readFile(basePath, "utf8")
 });
 
+ipcMain.handle("get-all-sized-audit", async (event, filePath) => {
+  const basePath = isDev
+    ? path.join(__dirname, "audits", filePath)
+    : path.join(app.getPath('documents'), "audits", filePath)
+  return await fsPromise.readFile(basePath, "utf8")
+})
+
 ipcMain.handle("read-audit-folder", async () => {
   const basePath = isDev
     ? path.join(__dirname, "audits", "audit-results")
-    : path.join(process.resourcesPath, "audits", "audit-results");
+    : path.join(app.getPath('documents'), "audits", "audit-results");
 
   try {
     return await loadFolderData(basePath)
@@ -186,7 +205,7 @@ ipcMain.handle("read-audit-folder", async () => {
 ipcMain.handle("read-old-audit-folder", async () => {
   const basePath = isDev
     ? path.join(__dirname, "audits", "old-audit-results")
-    : path.join(process.resourcesPath, "audits", "old-audit-results");
+    : path.join(app.getPath('documents'), "audits", "old-audit-results");
 
   try {
     return await loadFolderData(basePath)
@@ -199,7 +218,7 @@ ipcMain.handle("read-old-audit-folder", async () => {
 ipcMain.handle("read-custom-audits", async () => {
   const basePath = isDev
     ? path.join(__dirname, "audits", "custom-audit-results")
-    : path.join(process.resourcesPath, "audits", "custom-audit-results");
+    : path.join(app.getPath('documents'), "audits", "custom-audit-results");
 
   try {
     return await loadFolderData(basePath)
@@ -211,7 +230,9 @@ ipcMain.handle("read-custom-audits", async () => {
 
 ipcMain.handle("get-audit-metadata", async (event, fileFolder, auditData) => {
   try {
-    const filePath = path.join(__dirname, "audits", fileFolder, auditData);
+    const filePath = isDev
+      ? path.join(__dirname, "audits", fileFolder, auditData)
+      : path.join(app.getPath('documents'), "audits", fileFolder, auditData);
     let jsonAuditRaw;
     try {
       jsonAuditRaw = await fsPromise.readFile(filePath, "utf8");
@@ -268,7 +289,9 @@ ipcMain.handle("get-audit-metadata", async (event, fileFolder, auditData) => {
 
 ipcMain.handle('open-results-file', async (event, filename, folder) => {
   try {
-    const fullPath = path.join(__dirname, `./audits/${folder}`, filename)
+    const fullPath = isDev
+      ? path.join(__dirname, "audits", folder, filename)
+      : path.join(app.getPath('documents'), "audits", folder, filename)
     shell.openPath(fullPath)
     shell.showItemInFolder(fullPath)
   } catch (err) {
@@ -278,9 +301,12 @@ ipcMain.handle('open-results-file', async (event, filename, folder) => {
 })
 
 ipcMain.handle("save-file", async (event, filePath, fileContent) => {
+  const outputDir = isDev
+    ? path.join(__dirname, "audits", filePath)
+    : path.join(app.getPath('documents'), "audits", filePath)
   try {
     await fs.writeFileSync(
-      filePath,
+      outputDir,
       JSON.stringify(fileContent, null, 2),
       "utf8"
     );
@@ -336,17 +362,38 @@ ipcMain.handle("access-os-data", async () => {
   return concurrency;
 });
 
-ipcMain.handle("get-spawn", async (event, urlPath, outputPath, testing_method, user_agent, viewport, processId, isUsingUserAgent, isViewingAudit) => {
+ipcMain.handle("get-spawn", async (event, urlPath, outputDirPath, outputFilePath, testing_method, user_agent, viewport, processId, isUsingUserAgent, isViewingAudit) => {
+
+    const dirExists = async (dir) => {
+      try {
+        await fsPromise.access(dir, fsPromise.constants.F_OK)
+        console.log(`File ${dir} already exists, skipping...`)
+        return "yes"
+      } catch (err) {
+        if (err.code === "ENOENT") return "no"
+        return "error"
+      }
+    }
     const TIMEOUT_ALL_TESTS = 70000;
     const TIMEOUT_SINGULAR_TEST = 45000;
     let timeoutId;
+    const basePath = path.join(app.getPath('documents'), 'audits')
+    const specificPath = path.join(basePath, outputDirPath)
+    if (!isDev) {
+      if (dirExists(basePath) === "no") {
+        await fsPromise.mkdir(basePath, { recursive: true })
+      }
+      if (dirExists(specificPath) === "no") {
+        await fsPromise.mkdir(specificPath, { recursive: true })
+      }
+    }
+    const customOutputPath = isDev ? path.join(__dirname, 'audits', outputDirPath, outputFilePath) : path.join(specificPath, outputFilePath)
 
     const scriptPath = isDev
       ? path.join(__dirname, "runAndWriteAudit.mjs")
-      : path.join(process.resourcesPath, "runAndWriteAudit.mjs")
+      : path.join(process.resourcesPath, 'app', "runAndWriteAudit.mjs")
 
-      console.log(`Commencing test for ${urlPath}...`)
-    // console.log(`Commencing test for: ${urlPath},\n saving to ${outputPath},\n conducting a ${testing_method} type audit,\n Using the user agent: ${user_agent}.\n Viewport: ${viewport},\n Using the user agent? ${isUsingUserAgent},\n Viewing the audit? ${isViewingAudit}\n\n`)
+    console.log(`Commencing test for ${urlPath}...`)
 
     const spawnPromise = new Promise((resolve, reject) => {
       const child = child_process.spawn(
@@ -354,7 +401,7 @@ ipcMain.handle("get-spawn", async (event, urlPath, outputPath, testing_method, u
         [
           scriptPath,
           urlPath,
-          outputPath,
+          customOutputPath,
           testing_method,
           user_agent,
           viewport,
@@ -363,7 +410,13 @@ ipcMain.handle("get-spawn", async (event, urlPath, outputPath, testing_method, u
         ],
         {
           stdio: ["ignore", "pipe", "pipe"],
-          cwd: isDev ? process.cwd() : path.join(process.resourcesPath)
+          cwd: isDev ? process.cwd() : path.join(process.resourcesPath, 'app'),
+          env: {
+            ...process.env,
+            NODE_PATH: isDev
+              ? path.join(__dirname, 'node_modules')
+              : path.join(process.resourcesPath, 'app', 'node_modules')
+          }
         },
       );
 
@@ -460,12 +513,17 @@ ipcMain.handle("cancel-audit", async () => {
 });
 
 ipcMain.handle("move-audit-files", async () => {
-  const sourceDir = path.join(__dirname, "audits/audit-results");
-  const destinationDir = path.join(__dirname, "audits/old-audit-results");
+  const sourceDir = isDev
+    ? path.join(__dirname, "audits", "audit-results")
+    : path.join(app.getPath('documents'), "audits", "audit-results");
+  const destinationDir = isDev
+    ? path.join(__dirname, "audits", "old-audit-results")
+    : path.join(app.getPath('documents'), "audits", "old-audit-results");
 
   const limit = pLimitDefault(5);
 
   try {
+    await fsPromise.mkdir(sourceDir, { recursive: true })
     await fsPromise.mkdir(destinationDir, { recursive: true });
 
     const existingFiles = await fsPromise.readdir(destinationDir);
@@ -507,7 +565,9 @@ ipcMain.handle("move-audit-files", async () => {
 ipcMain.handle("clear-all-sized-audits-folder", async () => {
   const limit = pLimitDefault(1);
   try {
-    const destination = path.join(__dirname, "audits/all-audit-sizes");
+    const destination = isDev
+      ? path.join(__dirname, "audits", "all-audit-sizes")
+      : path.join(app.getPath('documents'), "audits", "all-audit-sizes")
     const existingFiles = await fsPromise.readdir(destination);
     await Promise.all(
       existingFiles.map((file) => {

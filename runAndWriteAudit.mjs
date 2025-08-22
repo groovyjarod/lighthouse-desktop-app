@@ -31,6 +31,7 @@ async function main() {
     if (parsedData.accessibilityScore > 0) {
       console.log(`main: Writing report to ${outputFile}, accessibilityScore=${parsedData.accessibilityScore}`);
       const outputDir = path.dirname(outputFile);
+      console.log(outputDir)
       await fs.mkdir(outputDir, { recursive: true });
       await fs.writeFile(outputFile, JSON.stringify(parsedData, null, 2), 'utf8');
       console.log('main: Audit complete, report written successfully');

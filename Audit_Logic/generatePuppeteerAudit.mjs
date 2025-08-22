@@ -1,6 +1,7 @@
-import puppeteer, { executablePath } from "puppeteer";
+import puppeteer from "puppeteer";
 import lighthouse from "lighthouse";
 import { URL } from "url";
+import fs from 'fs'
 
 export default async function generatePuppeteerAudit(
   puppeteerUrl,
@@ -10,7 +11,6 @@ export default async function generatePuppeteerAudit(
   isUsingUserAgent,
   isViewingAudit
 ) {
-  console.log(`Using PUPPETEER_EXECUTABLE_PATH: ${process.env.PUPPETEER_EXECUTABLE_PATH}`);
   const OUTPUT_FORMAT = "json";
   const TESTING_METHOD = testing_method === "all" ? "desktop" : testing_method;
   const isMobile = TESTING_METHOD === "mobile";
@@ -19,6 +19,14 @@ export default async function generatePuppeteerAudit(
   const LIGHTHOUSE_TIMEOUT = 20000;
   const viewport = { width: parseInt(viewportWidth), height: 800 }
   const EXPLICIT_PORT = 9222
+
+  const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH
+  if (!fs.existsSync(executablePath)) {
+    console.error(`Chromium binary not found at: ${executablePath}`)
+    throw new Error(`Chromium binary missing at ${executablePath}`)
+  }
+
+  console.log(`Using executablePath: ${executablePath}`)
 
   process.on('exit', (code) => {
     console.log(`Process exiting with code ${code}`)
@@ -39,20 +47,21 @@ export default async function generatePuppeteerAudit(
 
   let browser
   const puppeteerHeadlessConfig = {
-    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH,
+    executablePath,
     headless: true,
     args: puppeteerArgs,
   }
   const puppeteerConfig = {
-    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH,
+    executablePath,
     headless: false,
     args: puppeteerArgs,
   }
 
   try {
+      console.log('Launching puppeteer...')
       const useConfig = isViewingAudit == "no" ? puppeteerHeadlessConfig : puppeteerConfig;
       browser = await puppeteer.launch(useConfig);
-
+      console.log('Puppeteer successfully launched.')
     const page = await browser.newPage();
     page.on('console', (msg) => console.log(`Chrome Console [${msg.type()}]: ${msg.text()}`));
     page.on('pageerror', (err) => console.error('Chrome Page Error:', err.message));
