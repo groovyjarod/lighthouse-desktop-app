@@ -84,63 +84,20 @@
     "vite": "^7.0.0"
   },
   "build": {
+    "asar": false,
     "appId": "com.SolutionStream.auditapp",
     "productName": "Lighthouse Automation App",
     "files": [
       "!**/.DS_Store",
-      "bin/node",
-      "runAndWriteAudit.mjs",
-      "Audit_Logic/**/*",
-      "audits/**/*",
       "build/**/*",
       "main.js",
       "reusables/**/*",
-      "settings/**/*",
       "src/**/*",
       "preload.js",
-      "node_modules/puppeteer/**",
-      "node_modules/puppeteer-core/**",
-      "node_modules/lighthouse/**"
-    ],
-    "asarUnpack": [
-      "**/node_modules/lighthouse/**",
-      "**/node_modules/lighthouse-logger/**",
-      "**/node_modules/puppeteer/**",
-      "**/node_modules/puppeteer-core/**",
-      "**/node_modules/intl-messageformat/**",
-      "**/node_modules/cosmiconfig/**",
-      "**/node_modules/lodash-es/**",
-      "**/node_modules/debug/**",
-      "**/node_modules/marky/**",
-      "**/node_modules/proxy-agent/**",
-      "**/node_modules/lru-cache/**",
-      "**/node_modules/js-yaml/**",
-      "**/node_modules/minimist/**",
-      "**/node_modules/glob/**",
-      "**/node_modules/chalk/**",
-      "**/node_modules/object-inspect/**",
-      "**/node_modules/onetime/**",
-      "**/node_modules/resolve/**",
-      "**/node_modules/event-target-shim/**",
-      "**/node_modules/lighthouse-stack-packs/**",
-      "**/node_modules/tldts-icann/**",
-      "**/node_modules/lookup-closest-locale/**",
-      "**/node_modules/@paulirish/trace_engine/**",
-      "**/node_modules/third-party-web/**",
-      "**/node_modules/@puppeteer/browsers/**",
-      "**/node_modules/ws/**",
-      "**/node_modules/progress/**",
-      "**/node_modules/semver/**",
-      "**/node_modules/legacy-javascript/**",
-      "**/node_modules/agent-base/**",
-      "**/node_modules/ms/**",
-      "**/node_modules/proxy-from-env/**",
-      "**/node_modules/env-paths/**",
-      "**/node_modules/tslib/**",
-      "**/node_modules/@formatjs/fast-memoize/**",
-      "**/node_modules/@formatjs/icu-messageformat-parser/**",
-      "**/node_modules/@formatjs/icu-skeleton-parser/**",
-      "**/node_modules/tldts-core/**"
+      "node_modules/**/*",
+      "Audit_Logic/**/*",
+      "runAndWriteAudit.mjs",
+      "audits/**/*"
     ],
     "extraResources": [
       {
@@ -148,28 +105,16 @@
         "to": "settings/"
       },
       {
-        "from": "bin/node",
-        "to": "node"
+        "from": "bin/node.exe",
+        "to": "node.exe"
       },
       {
         "from": "audits/",
         "to": "audits/"
       },
       {
-        "from": "Audit_Logic/",
-        "to": "Audit_Logic"
-      },
-      {
-        "from": "runAndWriteAudit.mjs",
-        "to": "runAndWriteAudit.mjs"
-      },
-      {
         "from": "chrome-browser/",
-        "to": "app.asar.unpacked/chrome-browser"
-      },
-      {
-        "from": "node_modules/puppeteer/",
-        "to": "node_modules/puppeteer/"
+        "to": "chrome-browser/"
       }
     ],
     "directories": {

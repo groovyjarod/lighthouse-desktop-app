@@ -261,15 +261,17 @@ const AuditOne = () => {
     setTitleHeader("Auditing...");
     setAuditLogs([]);
     try {
-      const outputPath = `audits/custom-audit-results/${testingMethod}-${getLastPathSegment(fullUrl)}.json`;
+      const outputDirPath = 'custom-audit-results'
+      const outputFilePath = `${testingMethod}-${getLastPathSegment(fullUrl)}.json`;
       const processId = `${testingMethod}-${Date.now()}`;
-      console.log(`Starting audit for ${fullUrl}, method: ${testingMethod}, output: ${outputPath}, isUsingUserAgent: ${isUsingUserAgent}, isViewingAudit: ${isViewingAudit}`);
+      // console.log(`Starting audit for ${fullUrl}, method: ${testingMethod}, output: ${outputPath}, isUsingUserAgent: ${isUsingUserAgent}, isViewingAudit: ${isViewingAudit}`);
       const result = await retryAudit(async () => {
         console.log('AuditOne: isUsingUserAgent:', isUsingUserAgent);
         console.log('AuditOne: isViewingAudit:', isViewingAudit);
         const result = await window.electronAPI.getSpawn(
           fullUrl,
-          outputPath,
+          outputDirPath,
+          outputFilePath,
           testingMethod,
           userAgent,
           testingMethod === "desktop" ? 1920 : 500,

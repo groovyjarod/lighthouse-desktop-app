@@ -5,12 +5,10 @@ import "./src/styles.css";
 import Home from "./pages/Home";
 import AuditMenu from "./pages/AuditMenu";
 import AuditAll from "./pages/AuditAll";
-import AuditCompare from "./pages/AuditCompare";
 import AuditOne from "./pages/AuditOne";
 import AuditTransfer from "./pages/AuditTransfer";
 import ListMenu from "./pages/ListMenu";
 import ListAudits from "./pages/ListAudits"
-import ListComparisons from "./pages/ListComparisons";
 import ListOldAudits from "./pages/ListOldAudits";
 import ListCustomAudits from "./pages/ListCustomAudits";
 import SettingsMenu from "./pages/SettingsMenu";

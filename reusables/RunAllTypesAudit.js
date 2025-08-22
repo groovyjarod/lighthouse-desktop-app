@@ -43,7 +43,8 @@ const runAllTypesAudit = async (
   const failedAudits = []
   const runAllSizes = pLimit(2);
   const tasks = SIZES.map((size) => {
-    const outputPath = `./audits/all-audit-sizes/${size}-${getLastPathSegment(fullUrl)}.json`
+    const outputDirPath = 'all-audit-sizes'
+    const outputFilePath = `${size}-${getLastPathSegment(fullUrl)}.json`
     const viewportWidth = size > 500 ? "desktop" : "mobile"
     const processId = `audit-${Date.now()}-${size}`;
     const isViewingAudit = "no";
@@ -57,7 +58,8 @@ const runAllTypesAudit = async (
         try {
           const result = await window.electronAPI.getSpawn(
             fullUrl,
-            outputPath,
+            outputDirPath,
+            outputFilePath,
             viewportWidth,
             userAgent,
             size,
@@ -90,10 +92,10 @@ const runAllTypesAudit = async (
       throw new Error("Audit cancelled by user");
     }
     try {
-      const filePath = `./audits/all-audit-sizes/${size}-${getLastPathSegment(
+      const filePath = `all-audit-sizes/${size}-${getLastPathSegment(
         fullUrl
       )}.json`;
-      const sizedAudit = await window.electronAPI.getFile(filePath);
+      const sizedAudit = await window.electronAPI.getAllSizedAudit(filePath);
       return { size, data: JSON.parse(sizedAudit) };
     } catch (err) {
       console.error(
@@ -115,13 +117,13 @@ const runAllTypesAudit = async (
     console.error(`Error clearing all-audit-sizes folder: ${err.message}`);
   }
 
-  const filePath = `./audits/${folderPath}/allTypes-${getLastPathSegment(
-    fullUrl
-  )}.json`;
+  const filePath = `${folderPath}/allTypes-${getLastPathSegment(fullUrl)}.json`;
   const finalResult = await window.electronAPI.saveFile(filePath, allAudits);
   if (!finalResult) {
     throw new Error(`Failed to save allTypes file: ${filePath}`);
   }
+
+  console.log(finalResult)
 
   return allAudits;
 };

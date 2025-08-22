@@ -7,6 +7,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   cancelAudit: () => ipcRenderer.invoke("cancel-audit"),
   clearAllSizedAuditsFolder: () =>
     ipcRenderer.invoke("clear-all-sized-audits-folder"),
+  getAllSizedAudit: (filename) => ipcRenderer.invoke("get-all-sized-audit", filename),
   getAuditComparisons: () => ipcRenderer.invoke("read-comparison-folder"),
   getAuditResults: () => ipcRenderer.invoke("read-audit-folder"),
   getAuditMetadata: (fileFolder, auditPath) =>
@@ -18,7 +19,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   getPLimit: () => ipcRenderer.invoke("get-p-limit"),
   getSpawn: (
     urlPath,
-    outputPath,
+    outputDirPath,
+    outputFilePath,
     testing_method,
     user_agent,
     viewport,
@@ -29,7 +31,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke(
       "get-spawn",
       urlPath,
-      outputPath,
+      outputDirPath,
+      outputFilePath,
       testing_method,
       user_agent,
       viewport,
