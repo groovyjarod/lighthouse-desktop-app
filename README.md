@@ -1,4 +1,4 @@
-Version 0.9.1
+Version 0.9.3
 Created by Jarod Day
 
 This is a GUI-based desktop application designed to accomplish the tasks of the Lighthouse Automation Command Line Application, <a href="https://github.com/groovyjarod/lighthouse-automation/">which can be found here</a>. A chrome extension exists alongside this app to visualize accessibility audits and where they were generated, which can be found <a href="https://github.com/groovyjarod/Audit-Extension">here</a>. It is recommended to use this extension tool alongside this app in order to get the most out of Google's Lighthouse Auditing feature. 
