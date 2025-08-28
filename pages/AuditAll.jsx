@@ -11,17 +11,17 @@ import pLimit from "p-limit";
 import runAllTypesAudit from "../reusables/RunAllTypesAudit";
 import getLastPathSegment from "../reusables/getLastPathSegment";
 
-const NumberInput = memo(({ inputNumber, setInputNumber, disabled }) => {
+const NumberInput = memo(({ valueVariable, setValueVariable, disabled }) => {
 
-  inputNumber = !disabled ? inputNumber : 1
+  valueVariable == !disabled ? valueVariable : 1
 
   return (
     <Input
       className="input"
       type="text" // Use text to allow controlled validation
       name="number-link"
-      value={inputNumber}
-      onChange={(e) => setInputNumber(e.target.value)}
+      value={valueVariable}
+      onChange={(e) => setValueVariable(e.target.value)}
       disabled={disabled}
     />
   );
@@ -35,6 +35,8 @@ const ReadyScreen = memo(({
   setTestingMethod,
   isUsingUserAgent,
   setIsUsingUserAgent,
+  loadingTime,
+  setLoadingTime,
   commenceAllAudits,
   wikiPaths
 }) => {
@@ -55,7 +57,7 @@ const ReadyScreen = memo(({
       </Text>
       <h1>{recommendedAudits}.</h1>
       <Text>How many tests would you like to run concurrently?</Text>
-      <NumberInput inputNumber={testingMethod === 'all' ? 1 : inputNumber} setInputNumber={setInputNumber} disabled={testingMethod === 'all'} />
+      <NumberInput valueVariable={testingMethod === 'all' ? 1 : inputNumber} setValueVariable={setInputNumber} disabled={testingMethod === 'all'} />
       <h2>Choose Testing Method</h2>
       <HStack {...CenteredHstackCss}>
         <HStack {...BodyHstackCss}>
@@ -116,14 +118,21 @@ const ReadyScreen = memo(({
             <label htmlFor="mobile">Don't Use Key</label>
           </HStack>
         </HStack>
+      <h2>Timeout for Tests?</h2>
+      <p>Determine how many seconds each audit will be allotted to complete. Aim for about 15 to 25 seconds for best results.</p>
+      <NumberInput valueVariable={loadingTime} setValueVariable={setLoadingTime} disabled={false} />
+      <div className="div-spacer"></div>
       <button
         className="btn btn-main"
         onClick={commenceAllAudits}
         disabled={
           !wikiPaths.length ||
           !inputNumber ||
+          !loadingTime ||
           parseInt(inputNumber) <= 0 ||
-          !Number.isInteger(parseFloat(inputNumber))
+          parseInt(loadingTime) <= 0 ||
+          !Number.isInteger(parseFloat(inputNumber)) ||
+          !Number.isInteger(parseFloat(loadingTime))
         }
       >
         Start All Audits
@@ -147,6 +156,7 @@ const AuditAll = () => {
   const [failedAudits, setFailedAudits] = useState([]);
   const [isCancelled, setIsCancelled] = useState(false)
   const [errorMessage, setErrorMessage] = useState("")
+  const [loadingTime, setLoadingTime] = useState("15")
   const isCancelledRef = useRef(isCancelled)
 
   useEffect(() => {
@@ -275,7 +285,8 @@ const AuditAll = () => {
               testingMethod === 'desktop' ? 1920 : 500,
               processId,
               isUsingUserAgent,
-              isViewingAudit
+              isViewingAudit,
+              loadingTime
             );
             console.log(result)
             if (typeof result === "string" && result.includes("Audit complete, report written successfully")) {
@@ -402,6 +413,8 @@ const AuditAll = () => {
           setTestingMethod={setTestingMethod}
           isUsingUserAgent={isUsingUserAgent}
           setIsUsingUserAgent={setIsUsingUserAgent}
+          loadingTime={loadingTime}
+          setLoadingTime={setLoadingTime}
           commenceAllAudits={testingMethod === 'all' ? commenceEachAllTypeAudit : commenceAllAudits}
           wikiPaths={wikiPaths}
         />

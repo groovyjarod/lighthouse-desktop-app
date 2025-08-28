@@ -9,16 +9,17 @@ export default async function generatePuppeteerAudit(
   user_agent,
   viewportWidth,
   isUsingUserAgent,
-  isViewingAudit
+  isViewingAudit,
+  loadingTime
 ) {
   const OUTPUT_FORMAT = "json";
   const TESTING_METHOD = testing_method === "all" ? "desktop" : testing_method;
   const isMobile = TESTING_METHOD === "mobile";
   const USER_AGENT = isUsingUserAgent === "yes" ? user_agent : "The user has indicated they do not want to use a User Agent Key for this run.";
-  const LOADING_TIME = 10000;
-  const LIGHTHOUSE_TIMEOUT = 20000;
+  const LOADING_TIME = parseInt(loadingTime) * 1000; // timeout timer in milliseconds
+  const LIGHTHOUSE_TIMEOUT = 60000;
   const viewport = { width: parseInt(viewportWidth), height: 800 }
-  const EXPLICIT_PORT = 9222
+  const EXPLICIT_PORT = 9222 + Math.floor(Math.random() * 1000)
 
   const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH
   if (!fs.existsSync(executablePath)) {
@@ -27,6 +28,9 @@ export default async function generatePuppeteerAudit(
   }
 
   console.log(`Using executablePath: ${executablePath}`)
+  console.log(typeof LOADING_TIME)
+  console.log(`loadingTime: ${loadingTime}`)
+  console.log(`LOADING_TIME: ${LOADING_TIME}`)
 
   process.on('exit', (code) => {
     console.log(`Process exiting with code ${code}`)
@@ -41,6 +45,7 @@ export default async function generatePuppeteerAudit(
     "--disable-setuid-sandbox",
     `--remote-debugging-port=${EXPLICIT_PORT}`,
     '--remote-allow-origins=*',
+    '--disable-dev-shm-usage'
   ]
 
   if (isUsingUserAgent) puppeteerArgs.push(`--user-agent=${USER_AGENT}`)
@@ -58,10 +63,10 @@ export default async function generatePuppeteerAudit(
   }
 
   try {
-      console.log('Launching puppeteer...')
-      const useConfig = isViewingAudit == "no" ? puppeteerHeadlessConfig : puppeteerConfig;
-      browser = await puppeteer.launch(useConfig);
-      console.log('Puppeteer successfully launched.')
+    console.log('Launching puppeteer...')
+    const useConfig = isViewingAudit == "no" ? puppeteerHeadlessConfig : puppeteerConfig;
+    browser = await puppeteer.launch(useConfig);
+    console.log('Puppeteer successfully launched.')
     const page = await browser.newPage();
     page.on('console', (msg) => console.log(`Chrome Console [${msg.type()}]: ${msg.text()}`));
     page.on('pageerror', (err) => console.error('Chrome Page Error:', err.message));
@@ -113,7 +118,7 @@ export default async function generatePuppeteerAudit(
           disabled: false,
         },
         onlyCategories: ["accessibility"],
-        pauseAfterFcpMs: 3000,
+        pauseAfterFcpMs: 8000,
         maxWaitForLoad: LOADING_TIME,
         emulatedUserAgent: USER_AGENT,
       },
@@ -131,7 +136,7 @@ export default async function generatePuppeteerAudit(
           disabled: false,
         },
         onlyCategories: ["accessibility"],
-        pauseAfterFcpMs: 3000,
+        pauseAfterFcpMs: 8000,
         maxWaitForLoad: LOADING_TIME,
       },
     };
@@ -151,10 +156,11 @@ export default async function generatePuppeteerAudit(
         console.error('Lighthouse returned invalid result:', JSON.stringify(runResult, null, 2))
         throw new Error(`Invalid Lighthouse result`)
       }
+      await page.close()
+      await browser.close();
       const report = runResult.report;
       const accessibilityScore = runResult.lhr.categories.accessibility.score * 100;
       console.log(`Accessibility Score: ${accessibilityScore}`)
-      await browser.close();
       return [report, accessibilityScore];
     } catch (lighthouseError) {
       console.error('Lighthouse Error:', lighthouseError.message)

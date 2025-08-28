@@ -65,6 +65,7 @@ const createWindow = async () => {
     console.error('Error in creating folder paths in documents:', err)
     throw err
   }
+
   try {
     const preloadPath = path.join(__dirname, "preload.js");
     console.log('Preload path:', preloadPath);
@@ -362,38 +363,18 @@ ipcMain.handle("access-os-data", async () => {
   return concurrency;
 });
 
-ipcMain.handle("get-spawn", async (event, urlPath, outputDirPath, outputFilePath, testing_method, user_agent, viewport, processId, isUsingUserAgent, isViewingAudit) => {
-
-    const dirExists = async (dir) => {
-      try {
-        await fsPromise.access(dir, fsPromise.constants.F_OK)
-        console.log(`File ${dir} already exists, skipping...`)
-        return "yes"
-      } catch (err) {
-        if (err.code === "ENOENT") return "no"
-        return "error"
-      }
-    }
+ipcMain.handle("get-spawn", async (event, urlPath, outputDirPath, outputFilePath, testing_method, user_agent, viewport, processId, isUsingUserAgent, isViewingAudit, loadingTime) => {
     const TIMEOUT_ALL_TESTS = 70000;
     const TIMEOUT_SINGULAR_TEST = 45000;
     let timeoutId;
-    const basePath = path.join(app.getPath('documents'), 'audits')
-    const specificPath = path.join(basePath, outputDirPath)
-    if (!isDev) {
-      if (dirExists(basePath) === "no") {
-        await fsPromise.mkdir(basePath, { recursive: true })
-      }
-      if (dirExists(specificPath) === "no") {
-        await fsPromise.mkdir(specificPath, { recursive: true })
-      }
-    }
+
     const customOutputPath = isDev ? path.join(__dirname, 'audits', outputDirPath, outputFilePath) : path.join(specificPath, outputFilePath)
 
     const scriptPath = isDev
       ? path.join(__dirname, "runAndWriteAudit.mjs")
       : path.join(process.resourcesPath, 'app', "runAndWriteAudit.mjs")
 
-    console.log(`Commencing test for ${urlPath}...`)
+    // console.log(`Commencing test for ${urlPath}...`)
 
     const spawnPromise = new Promise((resolve, reject) => {
       const child = child_process.spawn(
@@ -406,7 +387,8 @@ ipcMain.handle("get-spawn", async (event, urlPath, outputDirPath, outputFilePath
           user_agent,
           viewport,
           isUsingUserAgent,
-          isViewingAudit
+          isViewingAudit,
+          loadingTime
         ],
         {
           stdio: ["ignore", "pipe", "pipe"],

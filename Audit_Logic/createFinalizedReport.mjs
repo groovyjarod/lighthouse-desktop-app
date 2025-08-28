@@ -3,9 +3,9 @@ import trimAuditData from './trimAuditData.mjs';
 import classifyIssue from './classifyIssue.mjs';
 
 // run lighthouse and return data as json object
-async function getRawAuditData(urlPath, testing_method, user_agent, viewport, isUsingUserAgent, isViewingAudit) {
+async function getRawAuditData(urlPath, testing_method, user_agent, viewport, isUsingUserAgent, isViewingAudit, loadingTime) {
   try {
-    const [rawResults, accessibilityScore] = await generatePuppeteerAudit(urlPath, testing_method, user_agent, viewport, isUsingUserAgent, isViewingAudit);
+    const [rawResults, accessibilityScore] = await generatePuppeteerAudit(urlPath, testing_method, user_agent, viewport, isUsingUserAgent, isViewingAudit, loadingTime);
     console.log(`getRawAuditData: Completed. accessibilityScore=${accessibilityScore}, rawResultsType=${typeof rawResults}`);
     return accessibilityScore === 0 ? [null, 0] : [rawResults, accessibilityScore];
   } catch (err) {
@@ -16,9 +16,9 @@ async function getRawAuditData(urlPath, testing_method, user_agent, viewport, is
 }
 
 // retrieve json object and return object with relevant data
-async function getAuditAccessibilityData(urlPath, testing_method, user_agent, viewport, isUsingUserAgent, isViewingAudit) {
+async function getAuditAccessibilityData(urlPath, testing_method, user_agent, viewport, isUsingUserAgent, isViewingAudit, loadingTime) {
   try {
-    const [auditResults, accessibilityScore] = await getRawAuditData(urlPath, testing_method, user_agent, viewport, isUsingUserAgent, isViewingAudit);
+    const [auditResults, accessibilityScore] = await getRawAuditData(urlPath, testing_method, user_agent, viewport, isUsingUserAgent, isViewingAudit, loadingTime);
     if (accessibilityScore === 0) {
       console.log(`getAuditAccessibilityData: accessibilityScore=0, returning null`);
       return [null, 0];
@@ -34,9 +34,9 @@ async function getAuditAccessibilityData(urlPath, testing_method, user_agent, vi
 }
 
 // extract relevant data
-async function organizeData(urlPath, testing_method, user_agent, viewport, isUsingUserAgent, isViewingAudit) {
+async function organizeData(urlPath, testing_method, user_agent, viewport, isUsingUserAgent, isViewingAudit, loadingTime) {
   try {
-    const [rawResultsData, accessibilityScore] = await getAuditAccessibilityData(urlPath, testing_method, user_agent, viewport, isUsingUserAgent, isViewingAudit);
+    const [rawResultsData, accessibilityScore] = await getAuditAccessibilityData(urlPath, testing_method, user_agent, viewport, isUsingUserAgent, isViewingAudit, loadingTime);
     if (accessibilityScore === 0) {
       console.log(`organizeData: accessibilityScore=0`);
       return { accessibilityScore: 0 };
@@ -82,9 +82,9 @@ async function organizeData(urlPath, testing_method, user_agent, viewport, isUsi
 }
 
 // default function that invokes all others
-export default async function createReport(urlPath, testing_method, user_agent, viewport, isUsingUserAgent, isViewingAudit) {
+export default async function createReport(urlPath, testing_method, user_agent, viewport, isUsingUserAgent, isViewingAudit, loadingTime) {
   try {
-    const dataToWrite = await organizeData(urlPath, testing_method, user_agent, viewport, isUsingUserAgent, isViewingAudit);
+    const dataToWrite = await organizeData(urlPath, testing_method, user_agent, viewport, isUsingUserAgent, isViewingAudit, loadingTime);
     console.log(`createReport: Completed for ${urlPath}`);
     return dataToWrite;
   } catch (err) {
