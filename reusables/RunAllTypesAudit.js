@@ -48,6 +48,7 @@ const runAllTypesAudit = async (
     const viewportWidth = size > 500 ? "desktop" : "mobile"
     const processId = `audit-${Date.now()}-${size}`;
     const isViewingAudit = "no";
+    const loadingTime = 25000
 
     return runAllSizes(() =>
       retryAudit(async () => {
@@ -65,7 +66,8 @@ const runAllTypesAudit = async (
             size,
             processId,
             isUsingUserAgent,
-            isViewingAudit
+            isViewingAudit,
+            loadingTime
           );
           console.log(`get-spawn result for size ${size}`)
           if (typeof result === "string" && result.includes("Audit complete, report written successfully")) {

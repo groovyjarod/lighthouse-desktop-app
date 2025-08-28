@@ -21,6 +21,22 @@ const UrlInput = memo(({ fullUrl, setFullUrl, className }) => (
   />
 ));
 
+const NumberInput = memo(({ valueVariable, setValueVariable, disabled }) => {
+
+  valueVariable == !disabled ? valueVariable : 1
+
+  return (
+    <Input
+      className="input"
+      type="text" // Use text to allow controlled validation
+      name="number-link"
+      value={valueVariable}
+      onChange={(e) => setValueVariable(e.target.value)}
+      disabled={disabled}
+    />
+  );
+});
+
 const ReadyScreen = memo(
   ({
     fullUrl,
@@ -31,6 +47,8 @@ const ReadyScreen = memo(
     setIsUsingUserAgent,
     isViewingAudit,
     setIsViewingAudit,
+    loadingTime,
+    setLoadingTime,
     handleAudit,
     handleAllSizesAudit,
     handleCheck
@@ -125,12 +143,22 @@ const ReadyScreen = memo(
             <label htmlFor="isNotViewingAudit">Don't View Audit</label>
           </HStack>
         </HStack>
+      <h2>Timeout for this Test?</h2>
+      <p>Determine how many seconds each audit will be allotted to complete. Aim for about 15 to 25 seconds for best results.</p>
+      <NumberInput valueVariable={loadingTime} setValueVariable={setLoadingTime} disabled={false} />
+      <div className="div-spacer"></div>
         <button
           className="btn btn-main"
           onClick={testingMethod === "all" ? handleAllSizesAudit : handleAudit}
           // onClick={LighthouseTest}
           // onClick={handleCheck}
-          disabled={fullUrl.length < 8 || !testingMethod}
+          disabled={
+            fullUrl.length < 8 ||
+            !testingMethod ||
+            !loadingTime ||
+            !Number.isInteger(parseFloat(loadingTime)) ||
+            parseInt(loadingTime) <= 0
+          }
         >
           Start Audit
         </button>
@@ -152,6 +180,7 @@ const AuditOne = () => {
   const [errorMessage, setErrorMessage] = useState("");
   const [isUsingUserAgent, setIsUsingUserAgent] = useState("yes");
   const [isViewingAudit, setIsViewingAudit] = useState('yes');
+  const [loadingTime, setLoadingTime] = useState("15")
   const isCancelledRef = useRef(isCancelled)
 
   useEffect(() => {
@@ -266,8 +295,6 @@ const AuditOne = () => {
       const processId = `${testingMethod}-${Date.now()}`;
       // console.log(`Starting audit for ${fullUrl}, method: ${testingMethod}, output: ${outputPath}, isUsingUserAgent: ${isUsingUserAgent}, isViewingAudit: ${isViewingAudit}`);
       const result = await retryAudit(async () => {
-        console.log('AuditOne: isUsingUserAgent:', isUsingUserAgent);
-        console.log('AuditOne: isViewingAudit:', isViewingAudit);
         const result = await window.electronAPI.getSpawn(
           fullUrl,
           outputDirPath,
@@ -277,7 +304,8 @@ const AuditOne = () => {
           testingMethod === "desktop" ? 1920 : 500,
           processId,
           isUsingUserAgent,
-          isViewingAudit
+          isViewingAudit,
+          loadingTime
         );
         console.log(`get-spawn result:`, result);
         console.log(typeof result)
@@ -420,6 +448,8 @@ const AuditOne = () => {
           setIsUsingUserAgent={setIsUsingUserAgent}
           isViewingAudit={isViewingAudit}
           setIsViewingAudit={setIsViewingAudit}
+          loadingTime={loadingTime}
+          setLoadingTime={setLoadingTime}
           handleAudit={handleAudit}
           handleAllSizesAudit={handleAllSizesAudit}
           handleCheck={handleCheck}
