@@ -411,19 +411,29 @@ const AuditOne = () => {
     </VStack>
   );
 
-  const ErrorScreen = () => (
-    <VStack {...BodyVstackCss}>
-      <h3>Audit failed for {fullUrl}.</h3>
-      <h4>{errorMessage.includes("The user has indicated they do not want to use a User Agent Key for this run.")
-        ? "Warning: The website you are trying to audit requires a User Agent Key. Please try again with User Agent Key set to 'Use Key', and make sure that your user agent key value matches the value given to you."
-        : errorMessage
-      }</h4>
-      <button className="btn btn-main" onClick={handleRunAgain}>
-        Run Another Audit
-      </button>
-      <div className="page-spacer"></div>
-    </VStack>
-  );
+  const ErrorScreen = () => {
+    const errorMessages = [
+      "Audit did not resolve due to timeout. Check to ensure you're using the correct user agent key, the url, and your connection, and try again.",
+      "The website you are trying to audit may require a User Agent Key. Please try again with User Agent Key set to 'Use Key', and make sure that your user agent key value matches the value given to you.",
+      "Lighthouse was not able to complete this audit in its allotted time. Check your timeout value, and try again.",
+      "Lighthouse was not able to complete this audit during this run. Please try again."
+    ]
+    let customErrorMessage
+    if (errorMessage.includes("did not resolve due to timeout")) customErrorMessage = errorMessages[0]
+    else if (errorMessage.includes("accessibility score: 0")) customErrorMessage = errorMessages[1]
+    else if (errorMessage.includes("Invalid Lighthouse result")) customErrorMessage = errorMessages[2]
+    else customErrorMessage = errorMessages[3]
+    return (
+      <VStack {...BodyVstackCss}>
+        <h3>Audit failed for {fullUrl}.</h3>
+        <h4>{customErrorMessage}</h4>
+
+        <button className="btn btn-main" onClick={handleRunAgain}>
+          Run Another Audit
+        </button>
+        <div className="page-spacer"></div>
+      </VStack>
+  )};
 
   const CancelledScreen = () => (
     <VStack {...BodyVstackCss}>
