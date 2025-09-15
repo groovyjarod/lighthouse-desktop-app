@@ -21,16 +21,13 @@ export default async function generatePuppeteerAudit(
   const viewport = { width: parseInt(viewportWidth), height: 800 }
   const EXPLICIT_PORT = 9222 + Math.floor(Math.random() * 1000)
 
+  console.log(`Puppeteer js file loaded. url: ${puppeteerUrl}, testing method: ${TESTING_METHOD}, user agent: ${USER_AGENT}, loading time: ${LOADING_TIME}, viewport: ${viewportWidth}, port for this run: ${EXPLICIT_PORT}`)
+
   const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH
   if (!fs.existsSync(executablePath)) {
     console.error(`Chromium binary not found at: ${executablePath}`)
     throw new Error(`Chromium binary missing at ${executablePath}`)
   }
-
-  console.log(`Using executablePath: ${executablePath}`)
-  console.log(typeof LOADING_TIME)
-  console.log(`loadingTime: ${loadingTime}`)
-  console.log(`LOADING_TIME: ${LOADING_TIME}`)
 
   process.on('exit', (code) => {
     console.log(`Process exiting with code ${code}`)
@@ -63,14 +60,15 @@ export default async function generatePuppeteerAudit(
   }
 
   try {
-    console.log('Launching puppeteer...')
     const useConfig = isViewingAudit == "no" ? puppeteerHeadlessConfig : puppeteerConfig;
     browser = await puppeteer.launch(useConfig);
     console.log('Puppeteer successfully launched.')
     const page = await browser.newPage();
-    page.on('console', (msg) => console.log(`Chrome Console [${msg.type()}]: ${msg.text()}`));
-    page.on('pageerror', (err) => console.error('Chrome Page Error:', err.message));
-    page.on('requestfailed', (req) => console.error('Chrome Request Failed:', req.url(), req.failure().errorText));
+    page.on('console', (msg) => {
+      if (msg.type() == 'error') console.log(`Chrome Console [${msg.type()}]: ${msg.text()}`);
+    })
+    // page.on('pageerror', (err) => console.error('Chrome Page Error:', err.message));
+    // page.on('requestfailed', (req) => console.error('Chrome Request Failed:', req.url(), req.failure().errorText));
 
     const ip = await page.evaluate(async () => {
       const res = await fetch('https://api.ipify.org?format=json');
@@ -86,7 +84,6 @@ export default async function generatePuppeteerAudit(
     const wsEndpoint = browser.wsEndpoint();
     const endpointURL = new URL(wsEndpoint);
     console.log('Parsed Endpoint Port:', endpointURL.port)
-    console.log('Verifying WebSocket connection...')
     const wsTest = await page.evaluate((endpoint) => {
       return new Promise((resolve) => {
         const ws = new WebSocket(endpoint)
@@ -144,14 +141,12 @@ export default async function generatePuppeteerAudit(
     const config = isUsingUserAgent ? configWithUserAgent : configWithoutUserAgent
 
     try {
-      console.log(`LIGHTHOUSE TESTING METHOD: ${testing_method}`)
-      console.log('Starting Lighthouse audit...')
       // const runResult = await Promise.race([
       //   lighthouse(puppeteerUrl, options, config),
       //   new Promise((_, reject) => setTimeout(() => reject(new Error ('Lighthouse timed out')), LIGHTHOUSE_TIMEOUT)),
       // ])
       const runResult = await lighthouse(puppeteerUrl, options, config);
-      console.log('Lighthouse audit complete')
+      console.log(`Lighthouse audit complete.`)
       if (!runResult || !runResult.lhr) {
         console.error('Lighthouse returned invalid result:', JSON.stringify(runResult, null, 2))
         throw new Error(`Invalid Lighthouse result`)

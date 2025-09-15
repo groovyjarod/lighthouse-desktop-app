@@ -6,11 +6,10 @@ import classifyIssue from './classifyIssue.mjs';
 async function getRawAuditData(urlPath, testing_method, user_agent, viewport, isUsingUserAgent, isViewingAudit, loadingTime) {
   try {
     const [rawResults, accessibilityScore] = await generatePuppeteerAudit(urlPath, testing_method, user_agent, viewport, isUsingUserAgent, isViewingAudit, loadingTime);
-    console.log(`getRawAuditData: Completed. accessibilityScore=${accessibilityScore}, rawResultsType=${typeof rawResults}`);
+    console.log(`getRawAuditData Completed. accessibilityScore=${accessibilityScore}, rawResultsType=${typeof rawResults}`);
     return accessibilityScore === 0 ? [null, 0] : [rawResults, accessibilityScore];
   } catch (err) {
-    console.error(`getRawAuditData: Failed for ${urlPath}: ${err.message}`);
-    console.error(`getRawAuditData: Stack: ${err.stack}`)
+    console.error(`getRawAuditData: Failed for ${urlPath}: ${err.message}, stack: ${err.stack}`);
     return [null, 0];
   }
 }
@@ -19,16 +18,11 @@ async function getRawAuditData(urlPath, testing_method, user_agent, viewport, is
 async function getAuditAccessibilityData(urlPath, testing_method, user_agent, viewport, isUsingUserAgent, isViewingAudit, loadingTime) {
   try {
     const [auditResults, accessibilityScore] = await getRawAuditData(urlPath, testing_method, user_agent, viewport, isUsingUserAgent, isViewingAudit, loadingTime);
-    if (accessibilityScore === 0) {
-      console.log(`getAuditAccessibilityData: accessibilityScore=0, returning null`);
-      return [null, 0];
-    }
-    const trimmedData = trimAuditData(auditResults);
-    console.log(`getAuditAccessibilityData: Trimmed data length=${trimmedData.length}`);
+    if (accessibilityScore === 0) return [null, 0]
+    const trimmedData = trimAuditData(auditResults)
     return [trimmedData, accessibilityScore];
   } catch (err) {
-    console.error(`getAuditAccessibilityData: Failed for ${urlPath}: ${err.message}`);
-    console.error(`getAuditAccessibilityData: Stack: ${err.stack}`);
+    console.error(`getAuditAccessibilityData: Failed for ${urlPath}: ${err.message}, stack: ${err.stack}`);
     return [null, 0];
   }
 }

@@ -176,7 +176,7 @@ const AuditOne = () => {
   const [userAgent, setUserAgent] = useState("");
   const [titleHeader, setTitleHeader] = useState("Audit One Webpage");
   const [isCancelled, setIsCancelled] = useState(false);
-  const [auditLogs, setAuditLogs] = useState([]);
+  const [isViewingError, setIsViewingError] = useState(false)
   const [errorMessage, setErrorMessage] = useState("");
   const [isUsingUserAgent, setIsUsingUserAgent] = useState("yes");
   const [isViewingAudit, setIsViewingAudit] = useState('yes');
@@ -243,7 +243,6 @@ const AuditOne = () => {
     setRunningStatus("running");
     setTitleHeader("Auditing All Sizes...");
     setPathName(getLastPathSegment(fullUrl));
-    setAuditLogs([]);
     setIsCancelled(false);
     try {
       const result = await retryAudit(async () => {
@@ -261,11 +260,11 @@ const AuditOne = () => {
         if (typeof result === "string" && result.includes("Audit complete.")) {
           return "Audit complete.";
         } else if (typeof result === "string" && result.includes("Audit incomplete.")) {
-          throw new Error(`AuditOne handleAllSizesAudit: Audit failed for all: ${result}`);
+          throw new Error(`In AuditOne handleAllSizesAudit: Audit incomplete for all: ${result}`);
         } else if (typeof result === "object" && Object.values(result).every(r => r.accessibilityScore > 0)) {
           return "Audit complete.";
         }
-        throw new Error(`AuditOne handleAllSizesAudit: Audit failed for all: ${JSON.stringify(result)}`);
+        throw new Error(`In AuditOne handleAllSizesAudit: Audit failed for all: ${JSON.stringify(result)}`);
       });
       console.log(`All sizes audit completed: ${result}`);
       setRunningStatus("finished");
@@ -288,7 +287,6 @@ const AuditOne = () => {
     setRunningStatus("running");
     setPathName(getLastPathSegment(fullUrl));
     setTitleHeader("Auditing...");
-    setAuditLogs([]);
     try {
       const outputDirPath = 'custom-audit-results'
       const outputFilePath = `${testingMethod}-${getLastPathSegment(fullUrl)}.json`;
@@ -344,6 +342,7 @@ const AuditOne = () => {
 
   const handleRunAgain = () => {
     setTitleHeader("Audit One Webpage")
+    setIsViewingError(false)
     setRunningStatus("ready");
     setFullUrl("");
     setErrorMessage("");
@@ -358,12 +357,12 @@ const AuditOne = () => {
       </h2>
       <p>
         {testingMethod !== "all"
-          ? "Tests usually take about 10-15 seconds to complete, depending on connection speed."
+          ? "Lighthouse is currently conducting an audit in the background. It will take some time to load the page and complete this audit, expect up to at least 30 seconds for this audit to complete. If your connection is too slow, or if the timeout trigger is too short, the audit will time out and try again."
           : "Currently conducting 4 simultaneous tests with a width of 500, 900, 1280, and 1920. This test will take at least a minute to complete and may fail to initially connect."}
       </p>
       <p>
         {testingMethod !== "all" &&
-          "If this page persists for longer than 30 seconds, please check your internet connection or try again."}
+          "If this page hangs for longer than 45 seconds, please check your internet connection or try again."}
       </p>
       <button
         className="btn btn-main"
@@ -398,7 +397,7 @@ const AuditOne = () => {
           Completed {testingMethod} {testingMethod === "all" ? "sized " : ""}{" "}
           Audit for
         </h2>
-        <h3>{fullUrl}.</h3>
+        <h3 style={{ maxWidth: "80%", overflow: "scroll" }}>{fullUrl}.</h3>
       </div>
       <LinkButton
         destination="../../lists-menu/view-custom-audits"
@@ -414,20 +413,21 @@ const AuditOne = () => {
   const ErrorScreen = () => {
     const errorMessages = [
       "Audit did not resolve due to timeout. Check to ensure you're using the correct user agent key, the url, and your connection, and try again.",
-      "The website you are trying to audit may require a User Agent Key. Please try again with User Agent Key set to 'Use Key', and make sure that your user agent key value matches the value given to you.",
+      "The website you are trying to audit may require a User Agent Key. Please try again with User Agent Key set to 'Use Key', and ensure that your User Agent Key value is compatible with the website you're attempting to audit.",
       "Lighthouse was not able to complete this audit in its allotted time. Check your timeout value, and try again.",
       "Lighthouse was not able to complete this audit during this run. Please try again."
     ]
     let customErrorMessage
     if (errorMessage.includes("did not resolve due to timeout")) customErrorMessage = errorMessages[0]
-    else if (errorMessage.includes("accessibility score: 0")) customErrorMessage = errorMessages[1]
+    else if (errorMessage.includes("403")) customErrorMessage = errorMessages[1]
     else if (errorMessage.includes("Invalid Lighthouse result")) customErrorMessage = errorMessages[2]
     else customErrorMessage = errorMessages[3]
     return (
       <VStack {...BodyVstackCss}>
         <h3>Audit failed for {fullUrl}.</h3>
         <h4>{customErrorMessage}</h4>
-
+        <button className="btn btn-small" onClick={() => setIsViewingError(isViewingError ? false : true)}>{isViewingError ? "Hide Error" : "View Error"}</button>
+        <p style={isViewingError ? { display: 'inline' } : { display: 'none' }}>{errorMessage}</p>
         <button className="btn btn-main" onClick={handleRunAgain}>
           Run Another Audit
         </button>
@@ -437,7 +437,7 @@ const AuditOne = () => {
 
   const CancelledScreen = () => (
     <VStack {...BodyVstackCss}>
-      <h3>Audit Cancelled for {fullUrl}</h3>
+      <h3 style={{ maxWidth: "100%", overflow: "scroll" }}>Audit Cancelled for {fullUrl}</h3>
       <h4>{errorMessage}</h4>
       <button className="btn btn-main" onClick={handleRunAgain}>
         Run Another Audit

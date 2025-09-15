@@ -11,14 +11,12 @@ if (!url || !outputFile) {
 }
 
 async function getReportData(url, testing_method, user_agent, viewport, isUsingUserAgent, isViewingAudit, loadingTime) {
-  console.log(`getReportData: Starting for URL=${url}, method=${testing_method}, user_agent=${user_agent}, viewport=${viewport}, isUsingUserAgent=${isUsingUserAgent}, isViewingAudit=${isViewingAudit}, loadingTime=${loadingTime}`);
   try {
     const returnData = await createReport(url, testing_method, user_agent, viewport, isUsingUserAgent, isViewingAudit, loadingTime);
     console.log(`getReportData: Result received, accessibilityScore=${returnData.accessibilityScore || 'none'}`);
     return returnData;
   } catch (err) {
-    console.error(`getReportData: Error for ${url}: ${err.message}`);
-    console.error(`getReportData: Stack: ${err.stack}`);
+    console.error(`getReportData: Error for ${url}: ${err.message}, stack: ${err.stack}`);
     return { accessibilityScore: 0, error: err.message };
   }
 }
@@ -26,7 +24,6 @@ async function getReportData(url, testing_method, user_agent, viewport, isUsingU
 async function main() {
   try {
     const jsonData = await getReportData(url, testing_method, user_agent, viewport, isUsingUserAgent, isViewingAudit, loadingTime);
-    console.log(`main: Received data, type=${typeof jsonData}`);
     const parsedData = typeof jsonData === 'string' ? JSON.parse(jsonData) : jsonData;
     if (parsedData.accessibilityScore > 0) {
       console.log(`main: Writing report to ${outputFile}, accessibilityScore=${parsedData.accessibilityScore}`);
