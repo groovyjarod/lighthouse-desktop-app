@@ -1,4 +1,5 @@
 const { app, BrowserWindow, ipcMain, shell } = require("electron");
+import { autoUpdater } from "electron-updater"
 const fs = require("fs");
 const fsPromise = require("fs").promises;
 const path = require("path");
@@ -111,7 +112,10 @@ const createWindow = async () => {
   }
 };
 
-app.on("ready", createWindow);
+app.on("ready", () => {
+  createWindow()
+  autoUpdater.checkForUpdatesAndNotify()
+});
 
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();
