@@ -372,7 +372,7 @@ ipcMain.handle("get-spawn", async (event, urlPath, outputDirPath, outputFilePath
     const TIMEOUT_SINGULAR_TEST = 45000;
     let timeoutId;
 
-    const customOutputPath = isDev ? path.join(__dirname, 'audits', outputDirPath, outputFilePath) : path.join(specificPath, outputFilePath)
+    const customOutputPath = isDev ? path.join(__dirname, 'audits', outputDirPath, outputFilePath) : path.join(app.getPath('documents'), "audits", outputDirPath, outputFilePath)
 
     const scriptPath = isDev
       ? path.join(__dirname, "runAndWriteAudit.mjs")
