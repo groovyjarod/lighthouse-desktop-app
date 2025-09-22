@@ -1,6 +1,6 @@
 {
   "name": "Lighthouse-Automation-App",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "A react-based automation tool using Electron to emulate, React to render, and javascript to process logic.",
   "main": "main.js",
   "author": "SolutionStream",
@@ -15,7 +15,8 @@
     "electron:pack": "npm run build && electron-builder --mac --win",
     "electron:pack-mac": "npm run build && electron-builder --mac",
     "electron:pack-win": "npm run build && electron-builder --win",
-    "postinstall": "npx puppeteer install"
+    "postinstall": "npx puppeteer install",
+    "release:win": "npm run build && electron-builder --win --publish=always"
   },
   "dependencies": {
     "@chakra-ui/react": "^2.10.4",
@@ -135,7 +136,7 @@
     "win": {
       "target": [
         {
-          "target": "nsis",
+          "target": "squirrel",
           "arch": [
             "x64",
             "ia32"
