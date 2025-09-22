@@ -9,8 +9,8 @@ const Home = () => {
     <>
       <VStack {...CenteredVstackCss}>
         <h1>Lighthouse Automation Tool</h1>
-        <h3>Version 1.3.0</h3>
-        <h2>Authored by Jarod Day</h2>
+        <h3>Version 1.0.5</h3>
+        <h2>Created for FamilySearch</h2>
         <VStack width="100%" gap="16px">
           <LinkButton
             destination="/test-menu"
