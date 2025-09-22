@@ -10,6 +10,31 @@ const pLimit = require("p-limit");
 const pLimitDefault = require("p-limit").default;
 require("@electron/remote/main").initialize();
 
+// ------------ Update Code -----------
+
+autoUpdater.logger = require('electron-log')
+autoUpdater.logger.transports.file.level = 'info'
+
+autoUpdater.on('checking-for-update', () => {
+  console.log('Checking for updates...')
+})
+
+autoUpdater.on('update-available', (info) => {
+  console.log('Update available:', info.version)
+  BrowserWindow.getAllWindows()[0].webContents.send('update-available', info)
+})
+
+autoUpdater.on('update-downloaded', (info) => {
+  console.log('Update downloaded:', info.version)
+  BrowserWindow.getAllWindows()[0].webContents.send('update-downloaded', info)
+  autoUpdater.quitAndInstall()
+})
+
+autoUpdater.on('error', (err) => {
+  console.error('Auto-update error:', err)
+  BrowserWindow.getAllWindows()[0].webContents.send('update-error', err.message)
+})
+
 // ------------ Setup Code ------------
 
 let nodeBinary
