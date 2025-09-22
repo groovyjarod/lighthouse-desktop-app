@@ -42,7 +42,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
       isViewingAudit,
       loadingTime
     ),
-  getWikiPathsData: () => ipcRenderer.invoke("get-wiki-paths"),
+    getWikiPathsData: () => ipcRenderer.invoke("get-wiki-paths"),
   getOldAudits: () => ipcRenderer.invoke("read-old-audit-folder"),
   moveAuditFiles: () => ipcRenderer.invoke("move-audit-files"),
   openResultsFile: (filename, folder) =>
@@ -56,3 +56,4 @@ contextBridge.exposeInMainWorld("electronAPI", {
 });
 
 console.log("preload script loaded.");
+console.log(`Executable path: ${process.env.PUPPETEER_EXECUTABLE_PATH}`)
