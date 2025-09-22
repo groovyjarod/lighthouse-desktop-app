@@ -5,7 +5,7 @@
   "main": "main.js",
   "author": "SolutionStream",
   "license": "MIT",
-  "homepage": "./",
+  "homepage": "https://github.com/groovyjarod/lighthouse-desktop-app",
   "scripts": {
     "electron:start": "electron .",
     "dev": "concurrently \"vite\" \"npm run electron:start\"",
