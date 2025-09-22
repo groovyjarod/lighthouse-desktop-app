@@ -1,5 +1,5 @@
 const { app, BrowserWindow, ipcMain, shell } = require("electron");
-import { autoUpdater } from "electron-updater"
+const { autoUpdater } = require("electron-updater")
 const fs = require("fs");
 const fsPromise = require("fs").promises;
 const path = require("path");
@@ -42,6 +42,7 @@ if (isPackaged) {
     nodeBinary = path.join(process.resourcesPath, 'node')
   }
 } else {
+  console.log('Development environment detected.')
   chromiumPath = puppeteer.executablePath();
   nodeBinary = "node"
 }
