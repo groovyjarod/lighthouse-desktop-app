@@ -55,9 +55,9 @@ const ReadyScreen = memo(
   }) => {
     return (
       <VStack {...BodyVstackCss}>
-        <h2>Paste Webpage Link Here</h2>
+        <h2>Paste Full Webpage URL Here:</h2>
         <UrlInput fullUrl={fullUrl} setFullUrl={setFullUrl} className="input input-main" />
-        <h2>Choose Testing Method</h2>
+        <h2>Choose Testing Method:</h2>
         <HStack {...CenteredHstackCss}>
           <HStack {...BodyHstackCss}>
             <input
@@ -146,7 +146,7 @@ const ReadyScreen = memo(
       <h2>Timeout for this Test?</h2>
       <p>Determine how many seconds each audit will be allotted to complete. Aim for about 15 to 25 seconds for best results.</p>
       <NumberInput valueVariable={loadingTime} setValueVariable={setLoadingTime} disabled={false} />
-      <div className="div-spacer"></div>
+      <div className="page-spacer"></div>
         <button
           className="btn btn-main"
           onClick={testingMethod === "all" ? handleAllSizesAudit : handleAudit}
