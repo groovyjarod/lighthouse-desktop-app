@@ -1,6 +1,6 @@
 {
   "name": "Lighthouse-Automation-App",
-  "version": "1.0.10",
+  "version": "1.0.11",
   "description": "A react-based automation tool using Electron to emulate, React to render, and javascript to process logic.",
   "main": "main.js",
   "author": "SolutionStream",
