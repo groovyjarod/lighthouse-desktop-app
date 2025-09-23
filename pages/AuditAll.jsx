@@ -59,6 +59,7 @@ const ReadyScreen = memo(({
       <Text>How many tests would you like to run concurrently?</Text>
       <NumberInput valueVariable={testingMethod === 'all' ? 1 : inputNumber} setValueVariable={setInputNumber} disabled={testingMethod === 'all'} />
       <h2>Choose Testing Method</h2>
+      <p>Choose which format the page will load to accommodate your auditing needs. All Sizes will render 4 instances of the webpage with 4 different width sizes.</p>
       <HStack {...CenteredHstackCss}>
         <HStack {...BodyHstackCss}>
           <input
@@ -121,7 +122,7 @@ const ReadyScreen = memo(({
       <h2>Timeout for Tests?</h2>
       <p>Determine how many seconds each audit will be allotted to complete. Aim for about 15 to 25 seconds for best results.</p>
       <NumberInput valueVariable={loadingTime} setValueVariable={setLoadingTime} disabled={false} />
-      <div className="div-spacer"></div>
+      <div className="page-spacer"></div>
       <button
         className="btn btn-main"
         onClick={commenceAllAudits}
