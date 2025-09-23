@@ -15,13 +15,26 @@ require("@electron/remote/main").initialize();
 autoUpdater.logger = require('electron-log')
 autoUpdater.logger.transports.file.level = 'info'
 
+autoUpdater.setFeedURL({
+  provider:"github",
+  owner: "groovyjarod",
+  repo: "lighthouse-desktop-app",
+  releaseType: "release"
+})
+
 autoUpdater.on('checking-for-update', () => {
   console.log('Checking for updates...')
+  BrowserWindow.getAllWindows()[0]?.webContents.send('update-status', 'Checking for updates...')
 })
 
 autoUpdater.on('update-available', (info) => {
   console.log('Update available:', info.version)
   BrowserWindow.getAllWindows()[0].webContents.send('update-available', info)
+})
+
+autoUpdater.on('update-not-available', () => {
+  console.log('No update available.')
+  BrowserWindow.getAllWindows()[0]?.webContents.send('update-not-available')
 })
 
 autoUpdater.on('update-downloaded', (info) => {
@@ -34,6 +47,8 @@ autoUpdater.on('error', (err) => {
   console.error('Auto-update error:', err)
   BrowserWindow.getAllWindows()[0].webContents.send('update-error', err.message)
 })
+
+console.log('Update feed URL:', autoUpdater.getFeedURL());
 
 // ------------ Setup Code ------------
 
