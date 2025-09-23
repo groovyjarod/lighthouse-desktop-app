@@ -1,6 +1,6 @@
 {
   "name": "Lighthouse-Automation-App",
-  "version": "1.0.9",
+  "version": "1.0.10",
   "description": "A react-based automation tool using Electron to emulate, React to render, and javascript to process logic.",
   "main": "main.js",
   "author": "SolutionStream",
@@ -146,11 +146,16 @@
       ],
       "icon": "icon.ico"
     },
+    "squirrelWindows": {
+      "iconUrl": "https://raw.githubusercontent.com/groovyjarod/lighthouse-desktop-app/master/icon.ico",
+      "msi": false
+    },
     "publish": [
       {
         "provider": "github",
         "owner": "groovyjarod",
-        "repo": "lighthouse-desktop-app"
+        "repo": "lighthouse-desktop-app",
+        "releaseType": "release"
       }
     ]
   }
