@@ -8,7 +8,7 @@ import LinkButton from '../reusables/LinkButton'
 const AuditMenu = () => {
   return (
     <VStack {...CenteredVstackCss}>
-      <MenuHeader title="Conduct an Audit" subTitle="Created for FamilySearch" headerText="Choose from the options below which type of audit you would like to conduct." />
+      <MenuHeader title="Conduct an Audit" subTitle="Version 1.0.15" headerText="Choose from the options below which type of audit you would like to conduct." />
       <div className="page-spacer"></div>
       <h2>Audit Options</h2>
       <HStack {...CenteredHstackCss}>

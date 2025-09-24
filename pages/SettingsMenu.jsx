@@ -31,7 +31,7 @@ const SettingsMenu = () => {
 
   return (
     <VStack {...CenteredVstackCss}>
-        <MenuHeader title="View and Change Files" subTitle="Settings" />
+        <MenuHeader title="Settings" subTitle="Version 1.0.15" />
         <HStack {...CenteredHstackCss}>
           <VStack {...BodyVstackCss}>
             <h2>Change Paths</h2>
