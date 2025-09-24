@@ -15,6 +15,9 @@ require("@electron/remote/main").initialize();
 autoUpdater.logger = require('electron-log')
 autoUpdater.logger.transports.file.level = 'info'
 
+console.log('Updater provider:', autoUpdater.currentProvider?.constructor?.nam || 'unknown')
+console.log('Update feed URL:', autoUpdater.getFeedURL())
+
 autoUpdater.setFeedURL({
   provider:"github",
   owner: "groovyjarod",
