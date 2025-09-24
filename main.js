@@ -51,7 +51,7 @@ autoUpdater.on('error', (err) => {
   BrowserWindow.getAllWindows()[0].webContents.send('update-error', err.message)
 })
 
-console.log(app.getVersion())
+console.log("Currently running on: ", app.getVersion())
 console.log('Update feed URL:', autoUpdater.getFeedURL());
 
 // ------------ Setup Code ------------
